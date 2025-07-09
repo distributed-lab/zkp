@@ -41,13 +41,6 @@ pub mod prover;
 /// Implements proof verification of compact and batchable proofs.
 pub mod verifier;
 
-use ark_ff::Field;
-use ark_ec::AffineRepr;
-use merlin::TranscriptRngBuilder;
-
-
-use crate::{ProofError, Transcript};
-
 /// An interface for specifying proof statements, common between
 /// provers and verifiers.
 ///
@@ -98,6 +91,11 @@ pub trait SchnorrCS {
     );
 }
 
+use crate::{ProofError, Transcript};
+use ark_ec::AffineRepr;
+use ark_ff::Field;
+use merlin::TranscriptRngBuilder;
+
 /// This trait defines the wire format for how the constraint system
 /// interacts with the proof transcript.
 pub trait TranscriptProtocol<G: AffineRepr> {
@@ -115,11 +113,7 @@ pub trait TranscriptProtocol<G: AffineRepr> {
     /// Returns the compressed point encoding to allow reusing the
     /// result of the encoding computation; the return value can be
     /// discarded if it's unused.
-    fn append_point_var(
-        &mut self,
-        label: &'static [u8],
-        point: &G,
-    );
+    fn append_point_var(&mut self, label: &'static [u8], point: &G);
 
     /// Check that point variable is not the identity and
     /// append it to the transcript, for use by a verifier.
@@ -140,11 +134,7 @@ pub trait TranscriptProtocol<G: AffineRepr> {
     /// Returns the compressed point encoding to allow reusing the
     /// result of the encoding computation; the return value can be
     /// discarded if it's unused.
-    fn append_blinding_commitment(
-        &mut self,
-        label: &'static [u8],
-        point: &G,
-    );
+    fn append_blinding_commitment(&mut self, label: &'static [u8], point: &G);
 
     /// Check that a blinding factor commitment is not the identity and
     /// commit it to the transcript, for use by a verifier.
@@ -160,7 +150,7 @@ pub trait TranscriptProtocol<G: AffineRepr> {
     ) -> Result<(), ProofError>;
 
     fn build_rng(&self) -> TranscriptRngBuilder;
-    
+
     /// Get a scalar challenge from the transcript.
     fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField;
 }
@@ -175,11 +165,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
         self.append_message(b"scvar", label);
     }
 
-    fn append_point_var(
-        &mut self,
-        label: &'static [u8],
-        point: &G,
-    ) {
+    fn append_point_var(&mut self, label: &'static [u8], point: &G) {
         let mut bytes = Vec::new();
         point.serialize_uncompressed(&mut bytes).unwrap();
         self.append_message(b"ptvar", label);
@@ -201,11 +187,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
         Ok(())
     }
 
-    fn append_blinding_commitment(
-        &mut self,
-        label: &'static [u8],
-        point: &G,
-    ) {
+    fn append_blinding_commitment(&mut self, label: &'static [u8], point: &G) {
         let mut bytes = Vec::new();
         point.serialize_uncompressed(&mut bytes).unwrap();
         self.append_message(b"blindcom", label);
@@ -228,7 +210,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
     }
 
     fn build_rng(&self) -> TranscriptRngBuilder {
-        self.build_rng()    
+        self.build_rng()
     }
 
     fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
