@@ -1,15 +1,13 @@
-
 use std::borrow::BorrowMut;
 use std::marker::PhantomData;
 
+use ark_ec::VariableBaseMSM;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::{BigInteger, PrimeField, UniformRand};
-use ark_ec::VariableBaseMSM;
-use rand::{thread_rng, Rng};
-use merlin::{TranscriptRng, TranscriptRngBuilder};
+use rand::thread_rng;
 
 use crate::toolbox::{SchnorrCS, TranscriptProtocol};
-use crate::{BatchableProof, CompactProof, Transcript};
+use crate::{BatchableProof, CompactProof};
 
 /// Used to create proofs.
 ///
@@ -56,7 +54,11 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
     }
 
     /// Allocate and assign a secret variable with the given `label`.
-    pub fn allocate_scalar(&mut self, label: &'static [u8], assignment: G::ScalarField) -> ScalarVar {
+    pub fn allocate_scalar(
+        &mut self,
+        label: &'static [u8],
+        assignment: G::ScalarField,
+    ) -> ScalarVar {
         self.transcript.borrow_mut().append_scalar_var(label);
         self.scalars.push(assignment);
         ScalarVar(self.scalars.len() - 1)
@@ -67,12 +69,10 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
     /// The point is compressed to be appended to the transcript, and
     /// the compressed point is returned to allow reusing the result
     /// of that computation; it can be safely discarded.
-    pub fn allocate_point(
-        &mut self,
-        label: &'static [u8],
-        assignment: G,
-    ) -> (PointVar, G) {
-        self.transcript.borrow_mut().append_point_var(label, &assignment);
+    pub fn allocate_point(&mut self, label: &'static [u8], assignment: G) -> (PointVar, G) {
+        self.transcript
+            .borrow_mut()
+            .append_point_var(label, &assignment);
         self.points.push(assignment);
         self.point_labels.push(label);
         (PointVar(self.points.len() - 1), assignment)
@@ -83,7 +83,8 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
         // Construct a TranscriptRng
         let mut rng_builder = self.transcript.borrow_mut().build_rng();
         for scalar in &self.scalars {
-            rng_builder = rng_builder.rekey_with_witness_bytes(b"", scalar.into_bigint().to_bytes_le().as_slice() );
+            rng_builder = rng_builder
+                .rekey_with_witness_bytes(b"", scalar.into_bigint().to_bytes_le().as_slice());
         }
         let mut transcript_rng = rng_builder.finalize(&mut thread_rng());
 
@@ -98,11 +99,23 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
         let mut commitments = Vec::with_capacity(self.constraints.len());
         for (lhs_var, rhs_lc) in &self.constraints {
             let commitment = G::Group::msm(
-                rhs_lc.iter().map(|(_sc_var, pt_var)| self.points[pt_var.0]).collect::<Vec<G>>().as_slice(),
-                rhs_lc.iter().map(|(sc_var, _pt_var)| blindings[sc_var.0]).collect::<Vec<G::ScalarField>>().as_slice(),
-            ).unwrap().into_affine();
+                rhs_lc
+                    .iter()
+                    .map(|(_sc_var, pt_var)| self.points[pt_var.0])
+                    .collect::<Vec<G>>()
+                    .as_slice(),
+                rhs_lc
+                    .iter()
+                    .map(|(sc_var, _pt_var)| blindings[sc_var.0])
+                    .collect::<Vec<G::ScalarField>>()
+                    .as_slice(),
+            )
+            .unwrap()
+            .into_affine();
 
-            self.transcript.borrow_mut().append_blinding_commitment(self.point_labels[lhs_var.0], &commitment);
+            self.transcript
+                .borrow_mut()
+                .append_blinding_commitment(self.point_labels[lhs_var.0], &commitment);
             commitments.push(commitment);
         }
 

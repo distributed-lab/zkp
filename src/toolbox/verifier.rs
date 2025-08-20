@@ -7,12 +7,8 @@ use std::borrow::BorrowMut;
 use std::iter;
 use std::marker::PhantomData;
 
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::{IsIdentity, VartimeMultiscalarMul};
-
 use crate::toolbox::{SchnorrCS, TranscriptProtocol};
-use crate::{BatchableProof, CompactProof, ProofError, Transcript};
+use crate::{BatchableProof, CompactProof, ProofError};
 
 /// Used to produce verification results.
 ///

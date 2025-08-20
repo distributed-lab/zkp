@@ -24,7 +24,6 @@
 extern crate serde;
 
 #[doc(hidden)]
-#[macro_use]
 pub extern crate serde_derive;
 #[doc(hidden)]
 pub extern crate merlin;
@@ -47,4 +46,3 @@ pub mod toolbox;
 
 #[macro_use]
 mod macros;
-pub use crate::macros::*;

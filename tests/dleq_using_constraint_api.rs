@@ -17,20 +17,13 @@ extern crate serde;
 extern crate sha2;
 extern crate zkp;
 
-use std::borrow::BorrowMut;
-
-use self::sha2::Sha512;
 
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
-use curve25519_dalek::constants as dalek_constants;
-use curve25519_dalek::ristretto::RistrettoPoint;
-use curve25519_dalek::scalar::Scalar;
 
 use ark_test_curves::secp256k1::{G1Affine, Fr};
 
 use rand::thread_rng;
-use zkp::toolbox::TranscriptProtocol;
 use zkp::toolbox::{batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS};
 use zkp::Transcript;
 
@@ -138,7 +131,7 @@ fn create_and_batch_verify_batchable_dleq() {
     let mut cmpr_As = Vec::new();
     let mut cmpr_Gs = Vec::new();
 
-    for j in 0..batch_size {
+    for _j in 0..batch_size {
         let (proof, cmpr_A, cmpr_G) = {
             let x = Fr::from(89327492234u64);
 

@@ -11,15 +11,13 @@
 // - Yevhen Hrubiian <grubian.euhen@gmail.com>
 #![allow(non_snake_case)]
 
-
 #[macro_use]
 extern crate zkp;
 
 use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::{Field, UniformRand};
+use ark_ff::UniformRand;
 use ark_test_curves::secp256k1::{Fr, G1Affine};
 use rand::thread_rng;
-
 
 use zkp::{BatchableProof, CompactProof, Transcript};
 
@@ -70,7 +68,6 @@ fn create_and_verify_compact() {
     )
     .is_ok());
 }
-
 
 #[test]
 fn create_and_verify_batchable() {
@@ -138,8 +135,7 @@ fn create_batch_and_batch_verify() {
         let mut pubkeys = vec![];
         let mut vrf_outputs = vec![];
 
-        for (i, message) in messages.iter().enumerate() {
-            
+        for (_i, _message) in messages.iter().enumerate() {
             let x = Fr::from(rand::random::<u64>());
             let r1 = Fr::from(rand::random::<u64>());
             let r2 = Fr::from(rand::random::<u64>());
@@ -183,4 +179,3 @@ fn create_batch_and_batch_verify() {
     )
     .is_ok());
 }
-

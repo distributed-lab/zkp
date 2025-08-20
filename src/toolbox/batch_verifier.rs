@@ -3,14 +3,13 @@ use std::marker::PhantomData;
 
 use rand::{thread_rng, Rng};
 
-use ark_ff::Field;
 use ark_ff::Zero;
 use ark_ec::VariableBaseMSM;
 use ark_ec::AffineRepr;
 
 use crate::toolbox::{SchnorrCS, TranscriptProtocol};
 use crate::util::Matrix;
-use crate::{BatchableProof, ProofError, Transcript};
+use crate::{BatchableProof, ProofError};
 
 /// Used to produce batch verification results.
 ///
