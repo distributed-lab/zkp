@@ -167,7 +167,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
 
     fn append_point_var(&mut self, label: &'static [u8], point: &G) {
         let mut bytes = Vec::new();
-        point.serialize_uncompressed(&mut bytes).unwrap();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"ptvar", label);
         self.append_message(b"val", &bytes);
     }
@@ -181,7 +181,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
             return Err(ProofError::VerificationFailure);
         }
         let mut bytes = Vec::new();
-        point.serialize_uncompressed(&mut bytes).unwrap();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"ptvar", label);
         self.append_message(b"val", &bytes);
         Ok(())
@@ -189,7 +189,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
 
     fn append_blinding_commitment(&mut self, label: &'static [u8], point: &G) {
         let mut bytes = Vec::new();
-        point.serialize_uncompressed(&mut bytes).unwrap();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"blindcom", label);
         self.append_message(b"val", &bytes);
     }
@@ -203,7 +203,7 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
             return Err(ProofError::VerificationFailure);
         }
         let mut bytes = Vec::new();
-        point.serialize_uncompressed(&mut bytes).unwrap();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"blindcom", label);
         self.append_message(b"val", &bytes);
         Ok(())
@@ -216,6 +216,6 @@ impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
     fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
         let mut bytes = [0; 64];
         self.challenge_bytes(label, &mut bytes);
-        G::ScalarField::from_random_bytes(&bytes).unwrap()
+        G::ScalarField::from_le_bytes_mod_order(&bytes)
     }
 }
