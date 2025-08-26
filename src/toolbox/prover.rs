@@ -1,5 +1,4 @@
 use std::borrow::BorrowMut;
-use std::marker::PhantomData;
 
 use ark_ec::VariableBaseMSM;
 use ark_ec::{AffineRepr, CurveGroup};
@@ -22,8 +21,7 @@ use crate::{BatchableProof, CompactProof};
 /// Finally, use [`Prover::prove_compact`] or
 /// [`Prover::prove_batchable`] to consume the prover and produce a
 /// proof.
-pub struct Prover<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> {
-    phantom_u: PhantomData<U>,
+pub struct Prover<G: AffineRepr, T: TranscriptProtocol<G>> {
     transcript: T,
     scalars: Vec<G::ScalarField>,
     points: Vec<G>,
@@ -38,13 +36,13 @@ pub struct ScalarVar(usize);
 #[derive(Copy, Clone)]
 pub struct PointVar(usize);
 
-impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
+impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     /// Construct a new prover.  The `proof_label` disambiguates proof
     /// statements.
     pub fn new(proof_label: &'static [u8], mut transcript: T) -> Self {
         transcript.borrow_mut().domain_sep(proof_label);
         Prover {
-            phantom_u: PhantomData,
+            // phantom_u: PhantomData,
             transcript,
             scalars: Vec::default(),
             points: Vec::default(),
@@ -149,7 +147,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
     }
 }
 
-impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> SchnorrCS for Prover<G, U, T> {
+impl<G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for Prover<G, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

@@ -204,9 +204,9 @@ macro_rules! define_proof {
             }
 
             fn build_prover<'a, G: AffineRepr>(
-                transcript: &'a mut Transcript,
+                transcript: Transcript,
                 assignments: ProveAssignments<G>,
-            ) -> (Prover<G, Transcript, &'a mut Transcript>, CompressedPoints<G>) {
+            ) -> (Prover<G, Transcript>, CompressedPoints<G>) {
                 use self::internal::*;
                 use $crate::toolbox::prover::*;
 
@@ -259,7 +259,7 @@ macro_rules! define_proof {
 
             /// Given a transcript and assignments to secret and public variables, produce a proof in compact format.
             pub fn prove_compact<G: AffineRepr>(
-                transcript: &mut Transcript,
+                transcript: Transcript,
                 assignments: ProveAssignments<G>,
             ) -> (CompactProof<G::ScalarField>, CompressedPoints<G>) {
                 let (prover, compressed) = build_prover(transcript, assignments);
@@ -269,7 +269,7 @@ macro_rules! define_proof {
 
             /// Given a transcript and assignments to secret and public variables, produce a proof in batchable format.
             pub fn prove_batchable<G: AffineRepr>(
-                transcript: &mut Transcript,
+                transcript: Transcript,
                 assignments: ProveAssignments<G>,
             ) -> (BatchableProof<G>, CompressedPoints<G>) {
                 let (prover, compressed) = build_prover(transcript, assignments);
@@ -278,9 +278,9 @@ macro_rules! define_proof {
             }
 
             fn build_verifier<'a, G: AffineRepr>(
-                transcript: &'a mut Transcript,
+                transcript: Transcript,
                 assignments: VerifyAssignments<G>,
-            ) -> Result<Verifier<G, Transcript, &'a mut Transcript>, ProofError> {
+            ) -> Result<Verifier<G, Transcript>, ProofError> {
                 use self::internal::*;
                 use $crate::toolbox::verifier::*;
 
@@ -313,7 +313,7 @@ macro_rules! define_proof {
             /// Given a transcript and assignments to public variables, verify a proof in compact format.
             pub fn verify_compact<G: AffineRepr>(
                 proof: &CompactProof<G::ScalarField>,
-                transcript: &mut Transcript,
+                transcript: Transcript,
                 assignments: VerifyAssignments<G>,
             ) -> Result<(), ProofError> {
                 let verifier = build_verifier(transcript, assignments)?;
@@ -324,7 +324,7 @@ macro_rules! define_proof {
             /// Given a transcript and assignments to public variables, verify a proof in batchable format.
             pub fn verify_batchable<G: AffineRepr>(
                 proof: &BatchableProof<G>,
-                transcript: &mut Transcript,
+                transcript: Transcript,
                 assignments: VerifyAssignments<G>,
             ) -> Result<(), ProofError> {
                 let verifier = build_verifier(transcript, assignments)?;
@@ -335,7 +335,7 @@ macro_rules! define_proof {
             /// Verify a batch of proofs, given a batch of transcripts and a batch of assignments.
             pub fn batch_verify<G: AffineRepr>(
                 proofs: &[BatchableProof<G>],
-                transcripts: Vec<&mut Transcript>,
+                transcripts: Vec<Transcript>,
                 assignments: BatchVerifyAssignments<G>,
             ) -> Result<(), ProofError> {
                 use self::internal::*;
@@ -343,7 +343,7 @@ macro_rules! define_proof {
 
                 let batch_size = proofs.len();
 
-                let mut verifier: BatchVerifier<G, Transcript, &mut Transcript> = BatchVerifier::new(PROOF_LABEL.as_bytes(), batch_size, transcripts)?;
+                let mut verifier: BatchVerifier<G, Transcript, Transcript> = BatchVerifier::new(PROOF_LABEL.as_bytes(), batch_size, transcripts)?;
 
                 let secret_vars = SecretVars {
                     $($secret_var: verifier.allocate_scalar(TRANSCRIPT_LABELS.$secret_var.as_bytes()),)+

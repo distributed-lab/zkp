@@ -50,9 +50,9 @@ fn create_and_verify_compact_dleq() {
         let A = (B * x).into_affine();
         let G = (H * x).into_affine();
 
-        let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover: Prover<G1Affine, Transcript, _> =
-            Prover::new(b"DLEQProof", &mut transcript);
+        let transcript = Transcript::new(b"DLEQTest");
+        let mut prover: Prover<G1Affine, Transcript> =
+            Prover::new(b"DLEQProof", transcript);
 
         // XXX committing var names to transcript forces ordering (?)
         let var_x = prover.allocate_scalar(b"x", x);
@@ -66,9 +66,9 @@ fn create_and_verify_compact_dleq() {
         (prover.prove_compact(), cmpr_A, cmpr_G)
     };
 
-    let mut transcript = Transcript::new(b"DLEQTest");
-    let mut verifier: Verifier<G1Affine, Transcript, _> =
-        Verifier::new(b"DLEQProof", &mut transcript);
+    let transcript = Transcript::new(b"DLEQTest");
+    let mut verifier: Verifier<G1Affine, Transcript> =
+        Verifier::new(b"DLEQProof", transcript);
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_point(b"B", B).unwrap();
@@ -92,9 +92,9 @@ fn create_and_verify_batchable_dleq() {
         let A = (B * x).into_affine();
         let G = (H * x).into_affine();
 
-        let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover: Prover<G1Affine, Transcript, _> =
-            Prover::new(b"DLEQProof", &mut transcript);
+        let transcript = Transcript::new(b"DLEQTest");
+        let mut prover: Prover<G1Affine, Transcript> =
+            Prover::new(b"DLEQProof", transcript);
 
         // XXX committing var names to transcript forces ordering (?)
         let var_x = prover.allocate_scalar(b"x", x);
@@ -108,9 +108,9 @@ fn create_and_verify_batchable_dleq() {
         (prover.prove_batchable(), cmpr_A, cmpr_G)
     };
 
-    let mut transcript = Transcript::new(b"DLEQTest");
-    let mut verifier: Verifier<G1Affine, Transcript, _> =
-        Verifier::new(b"DLEQProof", &mut transcript);
+    let transcript = Transcript::new(b"DLEQTest");
+    let mut verifier: Verifier<G1Affine, Transcript> =
+        Verifier::new(b"DLEQProof", transcript);
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_point(b"B", B).unwrap();
@@ -142,8 +142,8 @@ fn create_and_batch_verify_batchable_dleq() {
             let G = (H * x).into_affine();
 
             let mut transcript = Transcript::new(b"DLEQBatchTest");
-            let mut prover: Prover<G1Affine, Transcript, _> =
-                Prover::new(b"DLEQProof", &mut transcript);
+            let mut prover: Prover<G1Affine, Transcript> =
+                Prover::new(b"DLEQProof", transcript);
 
             // XXX committing var names to transcript forces ordering (?)
             let var_x = prover.allocate_scalar(b"x", x);

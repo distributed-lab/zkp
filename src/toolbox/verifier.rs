@@ -5,8 +5,6 @@ use ark_ff::Zero;
 use rand::{thread_rng, Rng};
 use std::borrow::BorrowMut;
 use std::iter;
-use std::marker::PhantomData;
-
 use crate::toolbox::{SchnorrCS, TranscriptProtocol};
 use crate::{BatchableProof, CompactProof, ProofError};
 
@@ -25,9 +23,7 @@ use crate::{BatchableProof, CompactProof, ProofError};
 /// Finally, use [`Verifier::verify_compact`] or
 /// [`Verifier::verify_batchable`] to consume the verifier and produce
 /// a verification result.
-pub struct Verifier<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> {
-    phantom_u: PhantomData<U>,
-
+pub struct Verifier<G: AffineRepr, T: TranscriptProtocol<G>> {
     transcript: T,
     num_scalars: usize,
     points: Vec<G>,
@@ -45,7 +41,7 @@ pub struct ScalarVar(usize);
 #[derive(Copy, Clone)]
 pub struct PointVar(usize);
 
-impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T> {
+impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
     /// Construct a verifier for the proof statement with the given
     /// `proof_label`, operating on the given `transcript`.
     pub fn new(proof_label: &'static [u8], mut transcript: T) -> Self {
@@ -56,7 +52,6 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T>
             points: Vec::default(),
             point_labels: Vec::default(),
             constraints: Vec::default(),
-            phantom_u: PhantomData,
         }
     }
 
@@ -172,7 +167,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T>
     }
 }
 
-impl<'a, G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> SchnorrCS for Verifier<G, U, T> {
+impl<'a, G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for Verifier<G, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

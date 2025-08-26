@@ -37,9 +37,9 @@ fn create_and_verify_compact() {
         let A = (G * x + H * r1).into_affine();
         let B = (G * x + H * r2).into_affine();
 
-        let mut transcript = Transcript::new(b"DLEQTest");
+        let transcript = Transcript::new(b"DLEQTest");
         dleq::prove_compact(
-            &mut transcript,
+            transcript,
             dleq::ProveAssignments {
                 x: &x,
                 r1: &r1,
@@ -57,10 +57,10 @@ fn create_and_verify_compact() {
     let parsed_proof: dleq::CompactProof<_> = CompactProof::from_bytes(&proof_bytes).unwrap();
 
     // Verifier logic
-    let mut transcript = Transcript::new(b"DLEQTest");
+    let transcript = Transcript::new(b"DLEQTest");
     assert!(dleq::verify_compact(
         &parsed_proof,
-        &mut transcript,
+        transcript,
         dleq::VerifyAssignments {
             A: &points.A,
             B: &points.B,
@@ -85,9 +85,9 @@ fn create_and_verify_batchable() {
         let A = (G * x + H * r1).into_affine();
         let B = (G * x + H * r2).into_affine();
 
-        let mut transcript = Transcript::new(b"DLEQTest");
+        let transcript = Transcript::new(b"DLEQTest");
         dleq::prove_batchable(
-            &mut transcript,
+            transcript,
             dleq::ProveAssignments {
                 x: &x,
                 r1: &r1,
@@ -105,10 +105,10 @@ fn create_and_verify_batchable() {
     let parsed_proof: dleq::BatchableProof<_> = BatchableProof::from_bytes(&proof_bytes).unwrap();
 
     // Verifier logic
-    let mut transcript = Transcript::new(b"DLEQTest");
+    let transcript = Transcript::new(b"DLEQTest");
     assert!(dleq::verify_batchable(
         &parsed_proof,
-        &mut transcript,
+        transcript,
         dleq::VerifyAssignments {
             A: &points.A,
             B: &points.B,
@@ -144,9 +144,9 @@ fn create_batch_and_batch_verify() {
             let A = (G * x + H * r1).into_affine();
             let B = (G * x + H * r2).into_affine();
 
-            let mut transcript = Transcript::new(b"DLEQTest");
+            let transcript = Transcript::new(b"DLEQTest");
             let (proof, points) = dleq::prove_batchable(
-                &mut transcript,
+                transcript,
                 dleq::ProveAssignments {
                     x: &x,
                     r1: &r1,
@@ -167,16 +167,16 @@ fn create_batch_and_batch_verify() {
     };
 
     // Verifier logic
-    let mut transcripts = vec![Transcript::new(b"DLEQTest"); messages.len()];
+    let transcripts = vec![Transcript::new(b"DLEQTest"); messages.len()];
 
     assert!(dleq::batch_verify(
         &proofs,
-        transcripts.iter_mut().collect(),
+        transcripts,
         dleq::BatchVerifyAssignments {
             A: pubkeys,
             B: vrf_outputs,
             H: vec![H, H, H, H],
-            G: G,
+            G,
         },
     )
     .is_ok());
