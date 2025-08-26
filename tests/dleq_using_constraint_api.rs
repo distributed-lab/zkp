@@ -17,11 +17,11 @@ extern crate serde;
 extern crate sha2;
 extern crate zkp;
 
-
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
 
-use ark_test_curves::secp256k1::{G1Affine, Fr};
+use xsk233_ark::affine::Xsk233Affine as G1Affine;
+use xsk233_ark::xsk233::Fr;
 
 use rand::thread_rng;
 use zkp::toolbox::{batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS};
@@ -51,7 +51,8 @@ fn create_and_verify_compact_dleq() {
         let G = (H * x).into_affine();
 
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover: Prover<G1Affine, Transcript, _> = Prover::new(b"DLEQProof", &mut transcript);
+        let mut prover: Prover<G1Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         // XXX committing var names to transcript forces ordering (?)
         let var_x = prover.allocate_scalar(b"x", x);
@@ -66,7 +67,8 @@ fn create_and_verify_compact_dleq() {
     };
 
     let mut transcript = Transcript::new(b"DLEQTest");
-    let mut verifier: Verifier<G1Affine, Transcript, _> = Verifier::new(b"DLEQProof", &mut transcript);
+    let mut verifier: Verifier<G1Affine, Transcript, _> =
+        Verifier::new(b"DLEQProof", &mut transcript);
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_point(b"B", B).unwrap();
@@ -91,7 +93,8 @@ fn create_and_verify_batchable_dleq() {
         let G = (H * x).into_affine();
 
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover: Prover<G1Affine, Transcript, _> = Prover::new(b"DLEQProof", &mut transcript);
+        let mut prover: Prover<G1Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         // XXX committing var names to transcript forces ordering (?)
         let var_x = prover.allocate_scalar(b"x", x);
@@ -106,7 +109,8 @@ fn create_and_verify_batchable_dleq() {
     };
 
     let mut transcript = Transcript::new(b"DLEQTest");
-    let mut verifier: Verifier<G1Affine, Transcript, _> = Verifier::new(b"DLEQProof", &mut transcript);
+    let mut verifier: Verifier<G1Affine, Transcript, _> =
+        Verifier::new(b"DLEQProof", &mut transcript);
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_point(b"B", B).unwrap();
@@ -118,7 +122,6 @@ fn create_and_verify_batchable_dleq() {
 
     assert!(verifier.verify_batchable(&proof).is_ok());
 }
-
 
 #[test]
 fn create_and_batch_verify_batchable_dleq() {
@@ -139,7 +142,8 @@ fn create_and_batch_verify_batchable_dleq() {
             let G = (H * x).into_affine();
 
             let mut transcript = Transcript::new(b"DLEQBatchTest");
-            let mut prover: Prover<G1Affine, Transcript, _> = Prover::new(b"DLEQProof", &mut transcript);
+            let mut prover: Prover<G1Affine, Transcript, _> =
+                Prover::new(b"DLEQProof", &mut transcript);
 
             // XXX committing var names to transcript forces ordering (?)
             let var_x = prover.allocate_scalar(b"x", x);
@@ -159,7 +163,8 @@ fn create_and_batch_verify_batchable_dleq() {
 
     let mut transcripts = vec![Transcript::new(b"DLEQBatchTest"); batch_size];
     let transcript_refs = transcripts.iter_mut().collect();
-    let mut verifier: BatchVerifier<G1Affine, Transcript, &mut Transcript> = BatchVerifier::new(b"DLEQProof", batch_size, transcript_refs).unwrap();
+    let mut verifier: BatchVerifier<G1Affine, Transcript, &mut Transcript> =
+        BatchVerifier::new(b"DLEQProof", batch_size, transcript_refs).unwrap();
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_static_point(b"B", B).unwrap();
@@ -171,4 +176,3 @@ fn create_and_batch_verify_batchable_dleq() {
 
     assert!(verifier.verify_batchable(&proofs).is_ok());
 }
-    

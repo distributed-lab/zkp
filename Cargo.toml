@@ -35,11 +35,11 @@ ark-serialize = "0.5.0"
 ark-std = "0.5.0"
 group = {version = "0.13.0"}
 ark-ff = "0.5.0"
-ark-test-curves = { version = "0.5.0", features = ["secp256k1"] }
 
 [dev-dependencies]
 bincode = "1"
 sha2 = "0.10.8"
+xsk233-ark = { version="0.1.0", git = "https://github.com/distributed-lab/ark-xsk233.git", branch = "fix/for_zkp" }
 
 [features]
 nightly = []
