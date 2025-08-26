@@ -368,7 +368,7 @@ macro_rules! define_proof {
 
                 verifier.verify_batchable(proofs)
             }
-            /* 
+            /*
             #[cfg(all(feature = "bench", test))]
             mod bench {
                 use super::*;

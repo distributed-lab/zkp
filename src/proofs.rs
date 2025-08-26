@@ -1,8 +1,8 @@
 use std::io::Cursor;
 
 use ark_ec::AffineRepr;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_ff::PrimeField;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 use crate::ProofError;
 /// A Schnorr proof in compact format.
@@ -26,7 +26,8 @@ pub struct CompactProof<F: PrimeField> {
 impl<F: PrimeField> CompactProof<F> {
     pub fn to_bytes(&self) -> Result<Vec<u8>, ProofError> {
         let mut cursor = Cursor::new(Vec::new());
-        self.serialize_compressed(&mut cursor).map_err(|_| ProofError::VerificationFailure)?;
+        self.serialize_compressed(&mut cursor)
+            .map_err(|_| ProofError::VerificationFailure)?;
         Ok(cursor.into_inner())
     }
 
@@ -36,11 +37,7 @@ impl<F: PrimeField> CompactProof<F> {
     pub fn from_bytes(slice: &[u8]) -> Result<CompactProof<F>, ProofError> {
         let mut cursor = Cursor::new(slice);
         let proof = CompactProof::<F>::deserialize_compressed(&mut cursor);
-        if proof.is_ok() {
-            Ok(proof.unwrap())
-        } else {
-            Err(ProofError::VerificationFailure)
-        }
+        proof.map_err(|_| ProofError::VerificationFailure)
     }
 }
 
@@ -59,7 +56,8 @@ pub struct BatchableProof<G: AffineRepr> {
 impl<G: AffineRepr> BatchableProof<G> {
     pub fn to_bytes(&self) -> Result<Vec<u8>, ProofError> {
         let mut cursor = Cursor::new(Vec::new());
-        self.serialize_compressed(&mut cursor).map_err(|_| ProofError::VerificationFailure)?;
+        self.serialize_compressed(&mut cursor)
+            .map_err(|_| ProofError::VerificationFailure)?;
         Ok(cursor.into_inner())
     }
 
@@ -69,10 +67,6 @@ impl<G: AffineRepr> BatchableProof<G> {
     pub fn from_bytes(slice: &[u8]) -> Result<BatchableProof<G>, ProofError> {
         let mut cursor = Cursor::new(slice);
         let proof = BatchableProof::<G>::deserialize_compressed(&mut cursor);
-        if proof.is_ok() {
-            Ok(proof.unwrap())
-        } else {
-            Err(ProofError::VerificationFailure)
-        }
+        proof.map_err(|_| ProofError::VerificationFailure)
     }
 }

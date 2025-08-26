@@ -1,11 +1,10 @@
 use std::borrow::BorrowMut;
-use std::marker::PhantomData;
 
 use rand::{thread_rng, Rng};
 
-use ark_ff::Zero;
-use ark_ec::VariableBaseMSM;
 use ark_ec::AffineRepr;
+use ark_ec::VariableBaseMSM;
+use ark_ff::Zero;
 
 use crate::toolbox::{SchnorrCS, TranscriptProtocol};
 use crate::util::Matrix;
@@ -75,8 +74,8 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
         if transcripts.len() != batch_size {
             return Err(ProofError::BatchSizeMismatch);
         }
-        for i in 0..transcripts.len() {
-            transcripts[i].borrow_mut().domain_sep(proof_label);
+        for transcript in &mut transcripts {
+            transcript.borrow_mut().domain_sep(proof_label);
         }
         Ok(BatchVerifier {
             batch_size,
@@ -106,7 +105,9 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
         assignment: G,
     ) -> Result<PointVar, ProofError> {
         for transcript in self.transcripts.iter_mut() {
-            transcript.borrow_mut().validate_and_append_point_var(label, &assignment)?;
+            transcript
+                .borrow_mut()
+                .validate_and_append_point_var(label, &assignment)?;
         }
         self.static_points.push(assignment);
         self.static_point_labels.push(label);
@@ -127,7 +128,9 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
         {
             let it = Iterator::zip(self.transcripts.iter_mut(), assignments.iter());
             for (transcript, assignment) in it {
-                transcript.borrow_mut().validate_and_append_point_var(label, &assignment)?;
+                transcript
+                    .borrow_mut()
+                    .validate_and_append_point_var(label, assignment)?;
             }
         }
         self.instance_points.push(assignments);
@@ -152,13 +155,15 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
         }
 
         // Feed each prover's commitments into their respective transcript
-        for j in 0..self.batch_size {
-            for (i, com) in proofs[j].commitments.iter().enumerate() {
+        for (j, proof) in proofs.iter().enumerate().take(self.batch_size) {
+            for (i, com) in proof.commitments.iter().enumerate() {
                 let label = match self.constraints[i].0 {
                     PointVar::Static(var_idx) => self.static_point_labels[var_idx],
                     PointVar::Instance(var_idx) => self.instance_point_labels[var_idx],
                 };
-                self.transcripts[j].borrow_mut().validate_and_append_blinding_commitment(label, &com)?;
+                self.transcripts[j]
+                    .borrow_mut()
+                    .validate_and_append_blinding_commitment(label, com)?;
             }
         }
 
@@ -224,7 +229,8 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
             .chain(instance_coeffs.row_major_entries())
             .cloned()
             .collect::<Vec<_>>();
-        let points: Vec<_> = self.static_points
+        let points: Vec<_> = self
+            .static_points
             .iter()
             .chain(flat_instance_points.iter())
             .cloned()
@@ -241,7 +247,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
     }
 }
 
-impl<'a, G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for BatchVerifier<G, T> {
+impl<G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for BatchVerifier<G, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

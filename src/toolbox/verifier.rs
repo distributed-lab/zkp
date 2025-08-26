@@ -1,3 +1,5 @@
+use crate::toolbox::{SchnorrCS, TranscriptProtocol};
+use crate::{BatchableProof, CompactProof, ProofError};
 use ark_ec::AffineRepr;
 use ark_ec::CurveGroup;
 use ark_ec::VariableBaseMSM;
@@ -5,8 +7,6 @@ use ark_ff::Zero;
 use rand::{thread_rng, Rng};
 use std::borrow::BorrowMut;
 use std::iter;
-use crate::toolbox::{SchnorrCS, TranscriptProtocol};
-use crate::{BatchableProof, CompactProof, ProofError};
 
 /// Used to produce verification results.
 ///
@@ -69,14 +69,19 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
         label: &'static [u8],
         assignment: G,
     ) -> Result<PointVar, ProofError> {
-        self.transcript.borrow_mut().validate_and_append_point_var(label, &assignment)?;
+        self.transcript
+            .borrow_mut()
+            .validate_and_append_point_var(label, &assignment)?;
         self.points.push(assignment);
         self.point_labels.push(label);
         Ok(PointVar(self.points.len() - 1))
     }
 
     /// Consume the verifier to produce a verification of a [`CompactProof`].
-    pub fn verify_compact(mut self, proof: &CompactProof<G::ScalarField>) -> Result<(), ProofError> {
+    pub fn verify_compact(
+        mut self,
+        proof: &CompactProof<G::ScalarField>,
+    ) -> Result<(), ProofError> {
         // Check that there are as many responses as secret variables
         if proof.responses.len() != self.num_scalars {
             return Err(ProofError::VerificationFailure);
@@ -92,15 +97,22 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
                 rhs_lc
                     .iter()
                     .map(|(_sc_var, pt_var)| points[pt_var.0])
-                    .chain(iter::once(points[lhs_var.0])).collect::<Vec<G>>().as_slice(),
+                    .chain(iter::once(points[lhs_var.0]))
+                    .collect::<Vec<G>>()
+                    .as_slice(),
                 rhs_lc
                     .iter()
                     .map(|(sc_var, _pt_var)| proof.responses[sc_var.0])
-                    .chain(iter::once(minus_c)).collect::<Vec<G::ScalarField>>().as_slice(),
-                ).unwrap()
-                .into_affine();
+                    .chain(iter::once(minus_c))
+                    .collect::<Vec<G::ScalarField>>()
+                    .as_slice(),
+            )
+            .unwrap()
+            .into_affine();
 
-            self.transcript.borrow_mut().append_blinding_commitment(self.point_labels[lhs_var.0], &commitment);
+            self.transcript
+                .borrow_mut()
+                .append_blinding_commitment(self.point_labels[lhs_var.0], &commitment);
         }
 
         // Recompute the challenge and check if it's the claimed one
@@ -127,16 +139,23 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
         // Feed the prover's commitments into the transcript:
         for (i, commitment) in proof.commitments.iter().enumerate() {
             let (ref lhs_var, ref _rhs_lc) = self.constraints[i];
-            self.transcript.borrow_mut().validate_and_append_blinding_commitment(
-                self.point_labels[lhs_var.0],
-                &commitment,
-            )?;
+            self.transcript
+                .borrow_mut()
+                .validate_and_append_blinding_commitment(
+                    self.point_labels[lhs_var.0],
+                    commitment,
+                )?;
         }
 
         let minus_c = -self.transcript.borrow_mut().get_challenge(b"chal");
 
         let commitments_offset = self.points.len();
-        let combined_points = self.points.iter().chain(proof.commitments.iter()).map(|&p| p).collect::<Vec<G>>();
+        let combined_points = self
+            .points
+            .iter()
+            .chain(proof.commitments.iter())
+            .copied()
+            .collect::<Vec<G>>();
 
         let mut coeffs = vec![G::ScalarField::zero(); self.points.len() + proof.commitments.len()];
         // For each constraint of the form Q = sum(P_i, x_i),
@@ -152,12 +171,9 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
                 coeffs[pt_var.0] += random_factor * proof.responses[sc_var.0];
             }
         }
-        
-        let check = G::Group::msm(
-            combined_points.as_slice(),
-            coeffs.as_slice()
-        )
-        .map_err(|_| ProofError::VerificationFailure)?;
+
+        let check = G::Group::msm(combined_points.as_slice(), coeffs.as_slice())
+            .map_err(|_| ProofError::VerificationFailure)?;
 
         if check.is_zero() {
             Ok(())
@@ -167,7 +183,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
     }
 }
 
-impl<'a, G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for Verifier<G, T> {
+impl<G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for Verifier<G, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

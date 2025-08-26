@@ -24,11 +24,11 @@
 extern crate serde;
 
 #[doc(hidden)]
-pub extern crate serde_derive;
-#[doc(hidden)]
 pub extern crate merlin;
 #[doc(hidden)]
 pub extern crate rand;
+#[doc(hidden)]
+pub extern crate serde_derive;
 
 pub extern crate ark_ec;
 pub extern crate ark_ff;

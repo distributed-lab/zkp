@@ -22,10 +22,10 @@ extern crate sha2;
 extern crate zkp;
 
 extern crate test;
-use test::Bencher;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_std::UniformRand;
 use rand::thread_rng;
+use test::Bencher;
 
 use xsk233_ark::affine::Xsk233Affine as G1Affine;
 use xsk233_ark::xsk233::Fr;
@@ -49,7 +49,7 @@ fn dleq_statement<CS: SchnorrCS>(
 #[bench]
 fn create_compact_dleq(b: &mut Bencher) {
     let G = G1Affine::generator();
-    let H  = G1Affine::rand(&mut thread_rng());
+    let H = G1Affine::rand(&mut thread_rng());
 
     let x = Fr::from(89327492234u64);
     let A = (G * x).into_affine();
@@ -74,7 +74,7 @@ fn create_compact_dleq(b: &mut Bencher) {
 #[bench]
 fn verify_compact_dleq(b: &mut Bencher) {
     let G = G1Affine::generator();
-    let H  = G1Affine::rand(&mut thread_rng());
+    let H = G1Affine::rand(&mut thread_rng());
 
     let (proof, cmpr_A, cmpr_B) = {
         let x = Fr::from(89327492234u64);
@@ -116,7 +116,7 @@ fn verify_compact_dleq(b: &mut Bencher) {
 #[bench]
 fn create_batchable_dleq(b: &mut Bencher) {
     let G = G1Affine::generator();
-    let H  = G1Affine::rand(&mut thread_rng());
+    let H = G1Affine::rand(&mut thread_rng());
 
     let x = Fr::from(89327492234u64);
     let A = (G * x).into_affine();
@@ -141,7 +141,7 @@ fn create_batchable_dleq(b: &mut Bencher) {
 #[bench]
 fn verify_batchable_dleq(b: &mut Bencher) {
     let G = G1Affine::generator();
-    let H  = G1Affine::rand(&mut thread_rng());
+    let H = G1Affine::rand(&mut thread_rng());
 
     let (proof, cmpr_A, cmpr_B) = {
         let x = Fr::from(89327492234u64);
@@ -181,7 +181,7 @@ fn verify_batchable_dleq(b: &mut Bencher) {
 
 fn batch_verify_batchable_dleq_helper(batch_size: usize, b: &mut Bencher) {
     let G = G1Affine::generator();
-    let H  = G1Affine::rand(&mut thread_rng());
+    let H = G1Affine::rand(&mut thread_rng());
 
     let mut proofs = Vec::new();
     let mut cmpr_As = Vec::new();

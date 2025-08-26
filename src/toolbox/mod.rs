@@ -93,7 +93,7 @@ pub trait SchnorrCS {
 
 use crate::{ProofError, Transcript};
 use ark_ec::AffineRepr;
-use ark_ff::{PrimeField};
+use ark_ff::PrimeField;
 use merlin::TranscriptRngBuilder;
 
 /// This trait defines the wire format for how the constraint system
