@@ -161,10 +161,9 @@ fn create_and_batch_verify_batchable_dleq() {
         cmpr_Gs.push(cmpr_G);
     }
 
-    let mut transcripts = vec![Transcript::new(b"DLEQBatchTest"); batch_size];
-    let transcript_refs = transcripts.iter_mut().collect();
-    let mut verifier: BatchVerifier<G1Affine, Transcript, &mut Transcript> =
-        BatchVerifier::new(b"DLEQProof", batch_size, transcript_refs).unwrap();
+    let transcripts = vec![Transcript::new(b"DLEQBatchTest"); batch_size];
+    let mut verifier: BatchVerifier<G1Affine, Transcript> =
+        BatchVerifier::new(b"DLEQProof", batch_size, transcripts).unwrap();
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_static_point(b"B", B).unwrap();

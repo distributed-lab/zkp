@@ -343,7 +343,7 @@ macro_rules! define_proof {
 
                 let batch_size = proofs.len();
 
-                let mut verifier: BatchVerifier<G, Transcript, Transcript> = BatchVerifier::new(PROOF_LABEL.as_bytes(), batch_size, transcripts)?;
+                let mut verifier: BatchVerifier<G, Transcript> = BatchVerifier::new(PROOF_LABEL.as_bytes(), batch_size, transcripts)?;
 
                 let secret_vars = SecretVars {
                     $($secret_var: verifier.allocate_scalar(TRANSCRIPT_LABELS.$secret_var.as_bytes()),)+

@@ -30,9 +30,7 @@ use crate::{BatchableProof, ProofError};
 ///
 /// Finally, use [`BatchVerifier::verify_batchable`] to consume the
 /// verifier and produce a batch verification result.
-pub struct BatchVerifier<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> {
-    phantom_u: PhantomData<U>,
-
+pub struct BatchVerifier<G: AffineRepr, T: TranscriptProtocol<G>> {
     batch_size: usize,
     transcripts: Vec<T>,
 
@@ -60,7 +58,7 @@ pub enum PointVar {
     Instance(usize),
 }
 
-impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> BatchVerifier<G, U, T> {
+impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
     /// Construct a new batch verifier for the statement with the
     /// given `proof_label`.
     ///
@@ -81,7 +79,6 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> BatchVerifier<G, 
             transcripts[i].borrow_mut().domain_sep(proof_label);
         }
         Ok(BatchVerifier {
-            phantom_u: PhantomData,
             batch_size,
             transcripts,
             num_scalars: 0,
@@ -244,7 +241,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> BatchVerifier<G, 
     }
 }
 
-impl<'a, G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> SchnorrCS for BatchVerifier<G, U, T> {
+impl<'a, G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for BatchVerifier<G, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

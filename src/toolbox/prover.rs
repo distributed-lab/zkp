@@ -42,7 +42,6 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     pub fn new(proof_label: &'static [u8], mut transcript: T) -> Self {
         transcript.borrow_mut().domain_sep(proof_label);
         Prover {
-            // phantom_u: PhantomData,
             transcript,
             scalars: Vec::default(),
             points: Vec::default(),
