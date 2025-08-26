@@ -49,7 +49,6 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T>
     /// Construct a verifier for the proof statement with the given
     /// `proof_label`, operating on the given `transcript`.
     pub fn new(proof_label: &'static [u8], mut transcript: T) -> Self {
-        //<Transcript as TranscriptProtocol<G>>::domain_sep(transcript.borrow_mut(), proof_label);
         transcript.borrow_mut().domain_sep(proof_label);
         Verifier {
             transcript,
