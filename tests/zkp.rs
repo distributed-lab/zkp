@@ -8,7 +8,6 @@
 //
 // Authors:
 // - Henry de Valence <hdevalence@hdevalence.ca>
-// - Yevhen Hrubiian <grubian.euhen@gmail.com>
 #![allow(non_snake_case)]
 
 #[macro_use]
