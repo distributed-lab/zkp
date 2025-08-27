@@ -4,7 +4,7 @@ use ark_ec::AffineRepr;
 use ark_ec::CurveGroup;
 use ark_ec::VariableBaseMSM;
 use ark_ff::Zero;
-use rand::{thread_rng, Rng};
+use rand::random;
 use std::borrow::BorrowMut;
 use std::iter;
 
@@ -163,7 +163,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
         // so add the check rand*( sum(P_i, resp_i) - c * Q - Q_com ) == 0
         for i in 0..self.constraints.len() {
             let (ref lhs_var, ref rhs_lc) = self.constraints[i];
-            let random_factor = G::ScalarField::from(thread_rng().gen::<u128>());
+            let random_factor = G::ScalarField::from(random::<u128>());
 
             coeffs[commitments_offset + i] += -random_factor;
             coeffs[lhs_var.0] += random_factor * minus_c;

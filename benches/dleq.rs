@@ -13,7 +13,6 @@
 #![allow(non_snake_case)]
 
 extern crate bincode;
-extern crate curve25519_dalek;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -149,7 +148,7 @@ fn verify_batchable_dleq(b: &mut Bencher) {
         let A = (G * x).into_affine();
         let B = (H * x).into_affine();
 
-        let mut transcript = Transcript::new(b"DLEQTest");
+        let transcript = Transcript::new(b"DLEQTest");
         let mut prover = Prover::new(b"DLEQProof", transcript);
 
         let var_x = prover.allocate_scalar(b"x", x);

@@ -124,7 +124,6 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
         if assignments.len() != self.batch_size {
             return Err(ProofError::BatchSizeMismatch);
         }
-        // nll
         {
             let it = Iterator::zip(self.transcripts.iter_mut(), assignments.iter());
             for (transcript, assignment) in it {

@@ -40,8 +40,8 @@ macro_rules! __compute_formula_constraint {
 ///
 /// This creates a module `dleq` with code for proving knowledge of a
 /// secret `x: Scalar` such that `A = x * G`, `B = x * H` for
-/// per-proof public parameters `A, B, H: RistrettoPoint` and common
-/// parameters `G: RistrettoPoint`; the UTF-8 string `"DLEQ Proof"` is
+/// per-proof public parameters `A, B, H: Xsk233Affine` and common
+/// parameters `G: Xsk233Affine`; the UTF-8 string `"DLEQ Proof"` is
 /// added to the transcript as a domain separator.
 ///
 /// In general the syntax is
@@ -368,117 +368,6 @@ macro_rules! define_proof {
 
                 verifier.verify_batchable(proofs)
             }
-            /*
-            #[cfg(all(feature = "bench", test))]
-            mod bench {
-                use super::*;
-                use $crate::rand::thread_rng;
-
-                extern crate test;
-                use self::test::Bencher;
-
-                #[bench]
-                fn prove(b: &mut Bencher) {
-                    let mut rng = thread_rng();
-
-                    struct RandomAssignments {
-                        $(pub $secret_var: Scalar,)+
-                        $(pub $instance_var: RistrettoPoint,)+
-                        $(pub $common_var: RistrettoPoint,)+
-                    }
-
-                    let assignments = RandomAssignments {
-                        $($secret_var: Scalar::random(&mut rng),)+
-                        $($instance_var: RistrettoPoint::random(&mut rng),)+
-                        $($common_var: RistrettoPoint::random(&mut rng),)+
-                    };
-
-                    // Proving is constant time, so it shouldn't matter
-                    // that the relation is not satisfied by random assignments.
-                    b.iter(|| {
-                        let mut trans = Transcript::new(b"Benchmark");
-                        prove_compact(&mut trans, ProveAssignments {
-                            $($secret_var: &assignments.$secret_var,)+
-                            $($instance_var: &assignments.$instance_var,)+
-                            $($common_var: &assignments.$common_var,)+
-                        })
-                    });
-                }
-
-                #[bench]
-                fn verify_compact_proof(b: &mut Bencher) {
-                    let mut rng = thread_rng();
-
-                    struct RandomAssignments {
-                        $(pub $secret_var: Scalar,)+
-                        $(pub $instance_var: RistrettoPoint,)+
-                        $(pub $common_var: RistrettoPoint,)+
-                    }
-
-                    let assignments = RandomAssignments {
-                        $($secret_var: Scalar::random(&mut rng),)+
-                        $($instance_var: RistrettoPoint::random(&mut rng),)+
-                        $($common_var: RistrettoPoint::random(&mut rng),)+
-                    };
-
-                    let mut trans = Transcript::new(b"Benchmark");
-                    let (proof, points) = prove_compact(&mut trans, ProveAssignments {
-                        $($secret_var: &assignments.$secret_var,)+
-                        $($instance_var: &assignments.$instance_var,)+
-                        $($common_var: &assignments.$common_var,)+
-                    });
-
-                    // The proof is well-formed but invalid, so the
-                    // compact verification should fall through to the
-                    // final check on the recomputed challenge, and
-                    // therefore verification failure should not affect
-                    // timing.
-                    b.iter(|| {
-                        let mut trans = Transcript::new(b"Benchmark");
-                        verify_compact(&proof, &mut trans, VerifyAssignments {
-                            $($instance_var: &points.$instance_var,)+
-                            $($common_var: &points.$common_var,)+
-                        })
-                    });
-                }
-
-                #[bench]
-                fn verify_batchable_proof(b: &mut Bencher) {
-                    let mut rng = thread_rng();
-
-                    struct RandomAssignments {
-                        $(pub $secret_var: Scalar,)+
-                        $(pub $instance_var: RistrettoPoint,)+
-                        $(pub $common_var: RistrettoPoint,)+
-                    }
-
-                    let assignments = RandomAssignments {
-                        $($secret_var: Scalar::random(&mut rng),)+
-                        $($instance_var: RistrettoPoint::random(&mut rng),)+
-                        $($common_var: RistrettoPoint::random(&mut rng),)+
-                    };
-
-                    let mut trans = Transcript::new(b"Benchmark");
-                    let (proof, points) = prove_batchable(&mut trans, ProveAssignments {
-                        $($secret_var: &assignments.$secret_var,)+
-                        $($instance_var: &assignments.$instance_var,)+
-                        $($common_var: &assignments.$common_var,)+
-                    });
-
-                    // The proof is well-formed but invalid, so the
-                    // batchable verification should perform the check and
-                    // see a non-identity point.  So verification failure
-                    // should not affect timing.
-                    b.iter(|| {
-                        let mut trans = Transcript::new(b"Benchmark");
-                        verify_batchable(&proof, &mut trans, VerifyAssignments {
-                            $($instance_var: &points.$instance_var,)+
-                            $($common_var: &points.$common_var,)+
-                        })
-                    });
-                }
-            }
-            */
         }
     }
 }

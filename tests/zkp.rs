@@ -17,7 +17,6 @@ use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
 use xsk233_ark::affine::Xsk233Affine as G1Affine;
 use xsk233_ark::xsk233::Fr;
-// use ark_test_curves::secp256k1::{Fr, G1Affine};
 use rand::thread_rng;
 
 use zkp::{BatchableProof, CompactProof, Transcript};
@@ -52,8 +51,7 @@ fn create_and_verify_compact() {
     };
 
     let proof_bytes = proof.to_bytes().unwrap();
-    println!("{:?}", proof_bytes);
-    let parsed_proof: dleq::CompactProof<_> = CompactProof::from_bytes(&proof_bytes).unwrap();
+    let parsed_proof: CompactProof<_> = CompactProof::from_bytes(&proof_bytes).unwrap();
 
     // Verifier logic
     let transcript = Transcript::new(b"DLEQTest");
@@ -100,8 +98,7 @@ fn create_and_verify_batchable() {
     };
 
     let proof_bytes = proof.to_bytes().unwrap();
-    println!("{:?}", proof_bytes);
-    let parsed_proof: dleq::BatchableProof<_> = BatchableProof::from_bytes(&proof_bytes).unwrap();
+    let parsed_proof: BatchableProof<_> = BatchableProof::from_bytes(&proof_bytes).unwrap();
 
     // Verifier logic
     let transcript = Transcript::new(b"DLEQTest");

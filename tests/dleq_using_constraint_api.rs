@@ -11,7 +11,6 @@
 #![allow(non_snake_case)]
 
 extern crate bincode;
-extern crate curve25519_dalek;
 extern crate serde;
 extern crate sha2;
 extern crate zkp;

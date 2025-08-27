@@ -2,7 +2,7 @@
 
 This crate has a toolkit for Schnorr-style zero-knowledge proofs,
 instantiated using arbitrary elliptic curve group built with [arkworks] 
-(original package uses only ristretto255 group).
+(original package uses only xsk233 group).
 
 It provides two levels of API:
 

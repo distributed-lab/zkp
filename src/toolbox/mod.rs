@@ -119,7 +119,7 @@ pub trait TranscriptProtocol<G: AffineRepr> {
     /// append it to the transcript, for use by a verifier.
     ///
     /// Returns `Ok(())` if the point is not the identity point (and
-    /// therefore generates the full ristretto255 group).
+    /// therefore generates the full xsk233 group).
     ///
     /// Using this function prevents small-subgroup attacks.
     fn validate_and_append_point_var(
@@ -140,7 +140,7 @@ pub trait TranscriptProtocol<G: AffineRepr> {
     /// commit it to the transcript, for use by a verifier.
     ///
     /// Returns `Ok(())` if the point is not the identity point (and
-    /// therefore generates the full ristretto255 group).
+    /// therefore generates the full xsk233 group).
     ///
     /// Using this function prevents small-subgroup attacks.
     fn validate_and_append_blinding_commitment(
@@ -157,7 +157,7 @@ pub trait TranscriptProtocol<G: AffineRepr> {
 
 impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
     fn domain_sep(&mut self, label: &'static [u8]) {
-        self.append_message(b"dom-sep", b"schnorrzkp/1.0/ristretto255");
+        self.append_message(b"dom-sep", b"schnorrzkp/1.0/xsk233");
         self.append_message(b"dom-sep", label);
     }
 

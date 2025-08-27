@@ -9,10 +9,9 @@ authors = ["Henry de Valence <hdevalence@hdevalence.ca>"]
 edition = "2018"
 license = "CC0-1.0"
 readme = "README.md"
-repository = "https://github.com/juja256/zkp"
 documentation = "https://docs.rs/zkp"
 categories = ["cryptography"]
-keywords = ["cryptography", "ristretto", "zero-knowledge", "NIZK", "compiler"]
+keywords = ["cryptography", "xsk233", "zero-knowledge", "NIZK", "compiler"]
 description = "A toolkit for auto-generated implementations of Schnorr proofs"
 exclude = [
     ".gitignore"
@@ -24,16 +23,13 @@ features = ["nightly"]
 [dependencies]
 merlin = "3.0.0"
 rand = "0.8.5"
-rand_core = "0.6.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1"
 thiserror = "2.0.12"
 # Disable default features to deselect a backend, then select one below
-curve25519-dalek = { version = "4.1.1", features = ["digest", "rand_core", "serde", "group"] }
 ark-ec = "0.5.0"
 ark-serialize = "0.5.0"
 ark-std = "0.5.0"
-group = {version = "0.13.0"}
 ark-ff = "0.5.0"
 
 [dev-dependencies]
