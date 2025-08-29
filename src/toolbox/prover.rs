@@ -76,7 +76,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     }
 
     /// The compact and batchable proofs differ only by which data they store.
-    fn prove_impl(mut self) -> (G::ScalarField, Vec<G::ScalarField>, Vec<G>) {
+    fn prove_impl(&mut self) -> (G::ScalarField, Vec<G::ScalarField>, Vec<G>) {
         // Construct a TranscriptRng
         let mut rng_builder = self.transcript.borrow_mut().build_rng();
         for scalar in &self.scalars {
@@ -126,7 +126,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     }
 
     /// Consume this prover to produce a compact proof.
-    pub fn prove_compact(self) -> CompactProof<G::ScalarField> {
+    pub fn prove_compact(&mut self) -> CompactProof<G::ScalarField> {
         let (challenge, responses, _) = self.prove_impl();
 
         CompactProof {
@@ -135,8 +135,12 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
         }
     }
 
+    pub fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
+        self.transcript.get_challenge(label)
+    }
+
     /// Consume this prover to produce a batchable proof.
-    pub fn prove_batchable(self) -> BatchableProof<G> {
+    pub fn prove_batchable(&mut self) -> BatchableProof<G> {
         let (_, responses, commitments) = self.prove_impl();
 
         BatchableProof {

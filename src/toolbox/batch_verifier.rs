@@ -89,6 +89,13 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
         })
     }
 
+    pub fn get_challenges(&mut self, label: &'static [u8]) -> Vec<G::ScalarField> {
+        self.transcripts
+            .iter_mut()
+            .map(|transcript| transcript.borrow_mut().get_challenge(label))
+            .collect()
+    }
+
     /// Allocate a placeholder scalar variable with the given `label`.
     pub fn allocate_scalar(&mut self, label: &'static [u8]) -> ScalarVar {
         for transcript in self.transcripts.iter_mut() {
@@ -139,7 +146,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
     }
 
     /// Consume the verifier to produce a verification result.
-    pub fn verify_batchable(mut self, proofs: &[BatchableProof<G>]) -> Result<(), ProofError> {
+    pub fn verify_batchable(&mut self, proofs: &[BatchableProof<G>]) -> Result<(), ProofError> {
         if proofs.len() != self.batch_size {
             return Err(ProofError::BatchSizeMismatch);
         }

@@ -15,10 +15,11 @@ extern crate zkp;
 
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
+use rand::thread_rng;
 use xsk233_ark::affine::Xsk233Affine as G1Affine;
 use xsk233_ark::xsk233::Fr;
-use rand::thread_rng;
 
+use zkp::toolbox::TranscriptProtocol;
 use zkp::{BatchableProof, CompactProof, Transcript};
 
 define_proof! {dleq, "Com(x, r1), Com(x, r2) Proof", (x, r1, r2), (A, B, H), (G) : A = (x * G + r1 * H), B = (x * G + r2 * H) }

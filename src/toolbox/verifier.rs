@@ -55,6 +55,10 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
         }
     }
 
+    pub fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
+        self.transcript.get_challenge(label)
+    }
+
     /// Allocate a placeholder scalar variable, without an assignment.
     pub fn allocate_scalar(&mut self, label: &'static [u8]) -> ScalarVar {
         self.transcript.borrow_mut().append_scalar_var(label);
@@ -79,7 +83,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
 
     /// Consume the verifier to produce a verification of a [`CompactProof`].
     pub fn verify_compact(
-        mut self,
+        &mut self,
         proof: &CompactProof<G::ScalarField>,
     ) -> Result<(), ProofError> {
         // Check that there are as many responses as secret variables
@@ -87,17 +91,14 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
             return Err(ProofError::VerificationFailure);
         }
 
-        // Decompress all parameters or fail verification.
-        let points = self.points;
-
         // Recompute the prover's commitments based on their claimed challenge value:
         let minus_c = -proof.challenge;
         for (lhs_var, rhs_lc) in &self.constraints {
             let commitment = G::Group::msm(
                 rhs_lc
                     .iter()
-                    .map(|(_sc_var, pt_var)| points[pt_var.0])
-                    .chain(iter::once(points[lhs_var.0]))
+                    .map(|(_sc_var, pt_var)| self.points[pt_var.0])
+                    .chain(iter::once(self.points[lhs_var.0]))
                     .collect::<Vec<G>>()
                     .as_slice(),
                 rhs_lc
@@ -126,7 +127,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
     }
 
     /// Consume the verifier to produce a verification of a [`BatchableProof`].
-    pub fn verify_batchable(mut self, proof: &BatchableProof<G>) -> Result<(), ProofError> {
+    pub fn verify_batchable(&mut self, proof: &BatchableProof<G>) -> Result<(), ProofError> {
         // Check that there are as many responses as secret variables
         if proof.responses.len() != self.num_scalars {
             return Err(ProofError::VerificationFailure);

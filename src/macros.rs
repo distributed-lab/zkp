@@ -262,7 +262,7 @@ macro_rules! define_proof {
                 transcript: Transcript,
                 assignments: ProveAssignments<G>,
             ) -> (CompactProof<G::ScalarField>, CompressedPoints<G>) {
-                let (prover, compressed) = build_prover(transcript, assignments);
+                let (mut prover, mut compressed) = build_prover(transcript, assignments);
 
                 (prover.prove_compact(), compressed)
             }
@@ -272,7 +272,7 @@ macro_rules! define_proof {
                 transcript: Transcript,
                 assignments: ProveAssignments<G>,
             ) -> (BatchableProof<G>, CompressedPoints<G>) {
-                let (prover, compressed) = build_prover(transcript, assignments);
+                let (mut prover, mut compressed) = build_prover(transcript, assignments);
 
                 (prover.prove_batchable(), compressed)
             }
@@ -316,7 +316,7 @@ macro_rules! define_proof {
                 transcript: Transcript,
                 assignments: VerifyAssignments<G>,
             ) -> Result<(), ProofError> {
-                let verifier = build_verifier(transcript, assignments)?;
+                let mut verifier = build_verifier(transcript, assignments)?;
 
                 verifier.verify_compact(proof)
             }
@@ -327,7 +327,7 @@ macro_rules! define_proof {
                 transcript: Transcript,
                 assignments: VerifyAssignments<G>,
             ) -> Result<(), ProofError> {
-                let verifier = build_verifier(transcript, assignments)?;
+                let mut verifier = build_verifier(transcript, assignments)?;
 
                 verifier.verify_batchable(proof)
             }
