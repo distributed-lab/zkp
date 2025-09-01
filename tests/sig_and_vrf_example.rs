@@ -15,11 +15,6 @@ use ark_ec::{AffineRepr, CurveGroup};
 use ark_std::UniformRand;
 use rand::{thread_rng, CryptoRng, RngCore};
 
-// extern crate curve25519_dalek;
-// use curve25519_dalek::constants as dalek_constants;
-// use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-// use curve25519_dalek::scalar::Scalar;
-
 use xsk233_ark::affine::{Xsk233Affine as G1Affine, Xsk233Affine};
 use xsk233_ark::xsk233::Fr;
 
