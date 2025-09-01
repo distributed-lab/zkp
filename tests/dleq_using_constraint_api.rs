@@ -22,10 +22,7 @@ use xsk233_ark::affine::Xsk233Affine as G1Affine;
 use xsk233_ark::xsk233::Fr;
 
 use rand::thread_rng;
-use zkp::toolbox::{
-    batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS,
-    TranscriptProtocol,
-};
+use zkp::toolbox::{batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS};
 use zkp::Transcript;
 
 fn dleq_statement<CS: SchnorrCS>(
