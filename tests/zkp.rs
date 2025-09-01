@@ -16,8 +16,8 @@ extern crate zkp;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
 use rand::thread_rng;
-use xsk233_ark::affine::Xsk233Affine as G1Affine;
-use xsk233_ark::xsk233::Fr;
+use ark_xsk233::affine::Xsk233Affine as G1Affine;
+use ark_xsk233::xsk233::Fr;
 
 use zkp::{BatchableProof, CompactProof, Transcript};
 
