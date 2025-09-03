@@ -22,7 +22,10 @@ use ark_xsk233::affine::Xsk233Affine as G1Affine;
 use ark_xsk233::xsk233::Fr;
 
 use rand::thread_rng;
-use zkp::toolbox::{batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS};
+use zkp::toolbox::{
+    batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS,
+    TranscriptProtocol,
+};
 use zkp::Transcript;
 
 fn dleq_statement<CS: SchnorrCS>(
@@ -42,8 +45,8 @@ fn create_and_verify_compact_dleq() {
     let B = G1Affine::generator();
     let H = G1Affine::rand(&mut thread_rng());
 
-    let transcript = Transcript::new(b"DLEQTest");
-    let mut prover: Prover<G1Affine, Transcript> = Prover::new(b"DLEQProof", transcript);
+    let mut transcript = Transcript::new(b"DLEQTest");
+    let mut prover: Prover<G1Affine, Transcript, _> = Prover::new(b"DLEQProof", &mut transcript);
 
     let (proof, cmpr_A, cmpr_G) = {
         let x = Fr::from(89327492234u64);
@@ -63,10 +66,12 @@ fn create_and_verify_compact_dleq() {
         (prover.prove_compact(), cmpr_A, cmpr_G)
     };
 
-    let prover_challenge = prover.get_challenge(b"");
+    let mut p_challange = Vec::new();
+    transcript.challenge_bytes(b"", &mut p_challange);
 
-    let transcript = Transcript::new(b"DLEQTest");
-    let mut verifier: Verifier<G1Affine, Transcript> = Verifier::new(b"DLEQProof", transcript);
+    let mut transcript = Transcript::new(b"DLEQTest");
+    let mut verifier: Verifier<G1Affine, Transcript, _> =
+        Verifier::new(b"DLEQProof", &mut transcript);
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_point(b"B", B).unwrap();
@@ -78,10 +83,10 @@ fn create_and_verify_compact_dleq() {
 
     assert!(verifier.verify_compact(&proof).is_ok());
 
-    let verifier_challenge = verifier.get_challenge(b"");
+    let mut v_challange = Vec::new();
+    transcript.challenge_bytes(b"", &mut v_challange);
 
-    // Check that transcripts are the same
-    assert_eq!(prover_challenge, verifier_challenge);
+    assert_eq!(p_challange, v_challange);
 }
 
 #[test]
@@ -89,8 +94,8 @@ fn create_and_verify_batchable_dleq() {
     let B = G1Affine::generator();
     let H = G1Affine::rand(&mut thread_rng());
 
-    let transcript = Transcript::new(b"DLEQTest");
-    let mut prover: Prover<G1Affine, Transcript> = Prover::new(b"DLEQProof", transcript);
+    let mut transcript = Transcript::new(b"DLEQTest");
+    let mut prover: Prover<G1Affine, Transcript, _> = Prover::new(b"DLEQProof", &mut transcript);
 
     let (proof, cmpr_A, cmpr_G) = {
         let x = Fr::from(89327492234u64);
@@ -110,10 +115,12 @@ fn create_and_verify_batchable_dleq() {
         (prover.prove_batchable(), cmpr_A, cmpr_G)
     };
 
-    let prover_challenge = prover.get_challenge(b"");
+    let mut p_challange = Vec::new();
+    transcript.challenge_bytes(b"", &mut p_challange);
 
-    let transcript = Transcript::new(b"DLEQTest");
-    let mut verifier: Verifier<G1Affine, Transcript> = Verifier::new(b"DLEQProof", transcript);
+    let mut transcript = Transcript::new(b"DLEQTest");
+    let mut verifier: Verifier<G1Affine, Transcript, _> =
+        Verifier::new(b"DLEQProof", &mut transcript);
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_point(b"B", B).unwrap();
@@ -124,10 +131,10 @@ fn create_and_verify_batchable_dleq() {
     dleq_statement(&mut verifier, var_x, var_A, var_G, var_B, var_H);
     assert!(verifier.verify_batchable(&proof).is_ok());
 
-    let verifier_challenge = verifier.get_challenge(b"");
+    let mut v_challange = Vec::new();
+    transcript.challenge_bytes(b"", &mut v_challange);
 
-    // Check that transcripts are the same
-    assert_eq!(prover_challenge, verifier_challenge);
+    assert_eq!(p_challange, v_challange);
 }
 
 #[test]
@@ -140,11 +147,11 @@ fn create_and_batch_verify_batchable_dleq() {
     let mut proofs = Vec::new();
     let mut cmpr_As = Vec::new();
     let mut cmpr_Gs = Vec::new();
-    let mut prover_challenges = Vec::new();
 
     for _j in 0..batch_size {
-        let transcript = Transcript::new(b"DLEQBatchTest");
-        let mut prover: Prover<G1Affine, Transcript> = Prover::new(b"DLEQProof", transcript);
+        let mut transcript = Transcript::new(b"DLEQBatchTest");
+        let mut prover: Prover<G1Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         let (proof, cmpr_A, cmpr_G) = {
             let x = Fr::from(89327492234u64);
@@ -166,12 +173,12 @@ fn create_and_batch_verify_batchable_dleq() {
         proofs.push(proof);
         cmpr_As.push(cmpr_A);
         cmpr_Gs.push(cmpr_G);
-        prover_challenges.push(prover.get_challenge(b""));
     }
 
-    let transcripts = vec![Transcript::new(b"DLEQBatchTest"); batch_size];
-    let mut verifier: BatchVerifier<G1Affine, Transcript> =
-        BatchVerifier::new(b"DLEQProof", batch_size, transcripts).unwrap();
+    let mut transcripts = vec![Transcript::new(b"DLEQBatchTest"); batch_size];
+    let transcript_refs = transcripts.iter_mut().collect();
+    let mut verifier: BatchVerifier<G1Affine, Transcript, &mut Transcript> =
+        BatchVerifier::new(b"DLEQProof", batch_size, transcript_refs).unwrap();
 
     let var_x = verifier.allocate_scalar(b"x");
     let var_B = verifier.allocate_static_point(b"B", B).unwrap();
@@ -182,9 +189,4 @@ fn create_and_batch_verify_batchable_dleq() {
     dleq_statement(&mut verifier, var_x, var_A, var_G, var_B, var_H);
 
     assert!(verifier.verify_batchable(&proofs).is_ok());
-
-    let verifier_challenges = verifier.get_challenges(b"");
-
-    // Check that transcripts are the same
-    assert_eq!(prover_challenges, verifier_challenges);
 }

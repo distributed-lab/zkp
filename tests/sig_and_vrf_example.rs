@@ -87,7 +87,7 @@ impl KeyPair {
         self.pk
     }
 
-    fn sign(&self, sig_transcript: Transcript) -> Signature {
+    fn sign(&self, sig_transcript: &mut Transcript) -> Signature {
         let (proof, _points) = sig_proof::prove_batchable(
             sig_transcript,
             sig_proof::ProveAssignments {
@@ -105,7 +105,7 @@ impl KeyPair {
         &self,
         mut function_transcript: Transcript,
         message: &[u8],
-        proof_transcript: Transcript,
+        proof_transcript: &mut Transcript,
     ) -> (VrfOutput, VrfProof) {
         // Use function_transcript to hash the message to a point H
         function_transcript.append_message_example(message);
@@ -133,13 +133,13 @@ impl Signature {
         &self,
         message: &[u8],
         pubkey: &PublicKey,
-        mut sig_transcript: Transcript,
+        sig_transcript: &mut Transcript,
     ) -> Result<(), ()> {
         sig_transcript.append_message_example(message);
         self.verify(pubkey, sig_transcript)
     }
 
-    fn verify(&self, pubkey: &PublicKey, sig_transcript: Transcript) -> Result<(), ()> {
+    fn verify(&self, pubkey: &PublicKey, sig_transcript: &mut Transcript) -> Result<(), ()> {
         sig_proof::verify_batchable(
             &self.0,
             sig_transcript,
@@ -159,7 +159,7 @@ impl VrfOutput {
         mut function_transcript: Transcript,
         message: &[u8],
         pubkey: &PublicKey,
-        proof_transcript: Transcript,
+        proof_transcript: &mut Transcript,
         proof: &VrfProof,
     ) -> Result<(), ()> {
         // Use function_transcript to hash the message to a point H
@@ -197,39 +197,39 @@ fn create_and_verify_sig() {
     let mut t2 = Transcript::new(domain_sep);
     t2.append_message_example(msg2);
 
-    let sig1 = kp1.sign(t1);
-    let sig2 = kp2.sign(t2);
+    let sig1 = kp1.sign(&mut t1);
+    let sig2 = kp2.sign(&mut t2);
 
     // Check that each signature verifies
     assert!(sig1
-        .verify_with_message(msg1, &pk1, Transcript::new(domain_sep),)
+        .verify_with_message(msg1, &pk1, &mut Transcript::new(domain_sep))
         .is_ok());
     assert!(sig2
-        .verify_with_message(msg2, &pk2, Transcript::new(domain_sep),)
+        .verify_with_message(msg2, &pk2, &mut Transcript::new(domain_sep))
         .is_ok());
 
     // Check that verification with the wrong pubkey fails
     assert!(sig1
-        .verify_with_message(msg1, &pk2, Transcript::new(domain_sep),)
+        .verify_with_message(msg1, &pk2, &mut Transcript::new(domain_sep))
         .is_err());
     assert!(sig2
-        .verify_with_message(msg2, &pk1, Transcript::new(domain_sep),)
+        .verify_with_message(msg2, &pk1, &mut Transcript::new(domain_sep))
         .is_err());
 
     // Check that verification with the wrong message fails
     assert!(sig1
-        .verify_with_message(msg2, &pk1, Transcript::new(domain_sep),)
+        .verify_with_message(msg2, &pk1, &mut Transcript::new(domain_sep))
         .is_err());
     assert!(sig2
-        .verify_with_message(msg1, &pk2, Transcript::new(domain_sep),)
+        .verify_with_message(msg1, &pk2, &mut Transcript::new(domain_sep))
         .is_err());
 
     // Check that verification with the wrong domain separator fails
     assert!(sig1
-        .verify_with_message(msg1, &pk1, Transcript::new(b"Wrong"),)
+        .verify_with_message(msg1, &pk1, &mut Transcript::new(b"Wrong"))
         .is_err());
     assert!(sig2
-        .verify_with_message(msg2, &pk2, Transcript::new(b"Wrong"),)
+        .verify_with_message(msg2, &pk2, &mut Transcript::new(b"Wrong"))
         .is_err());
 }
 
@@ -246,11 +246,11 @@ fn create_and_verify_bigsig() {
     let mut t = Transcript::new(domain_sep);
     t.append_message_example(large_msg.as_slice());
 
-    let sig = kp.sign(t);
+    let sig = kp.sign(&mut t);
 
     // Check that the signature verifies (& doesn't panic inside Merlin)
     assert!(sig
-        .verify_with_message(&large_msg[..], &pk, Transcript::new(domain_sep),)
+        .verify_with_message(&large_msg[..], &pk, &mut Transcript::new(domain_sep))
         .is_ok());
 }
 
@@ -275,36 +275,36 @@ fn counterparty_signature_chain() {
 
     // Round a, Party 1 -----> Party 2
     trans1.append_message_example(msg1a);
-    let sig1a = kp1.sign(trans1.clone());
+    let sig1a = kp1.sign(&mut trans1);
     trans2.append_message_example(msg1a);
-    assert!(sig1a.verify(&pk1, trans2.clone()).is_ok());
+    assert!(sig1a.verify(&pk1, &mut trans2).is_ok());
     // Round a, Party 2 -----> Party 1
     trans2.append_message_example(msg2a);
-    let sig2a = kp2.sign(trans2.clone());
+    let sig2a = kp2.sign(&mut trans2);
     trans1.append_message_example(msg2a);
-    assert!(sig2a.verify(&pk2, trans1.clone()).is_ok());
+    assert!(sig2a.verify(&pk2, &mut trans1).is_ok());
 
     // Round b, Party 1 -----> Party 2
     trans1.append_message_example(msg1b);
-    let sig1b = kp1.sign(trans1.clone());
+    let sig1b = kp1.sign(&mut trans1);
     trans2.append_message_example(msg1b);
-    assert!(sig1b.verify(&pk1, trans2.clone()).is_ok());
+    assert!(sig1b.verify(&pk1, &mut trans2).is_ok());
     // // Round b, Party 2 -----> Party 1
     trans2.append_message_example(msg2b);
-    let sig2b = kp2.sign(trans2.clone());
+    let sig2b = kp2.sign(&mut trans2);
     trans1.append_message_example(msg2b);
-    assert!(sig2b.verify(&pk2, trans1.clone()).is_ok());
+    assert!(sig2b.verify(&pk2, &mut trans1).is_ok());
 
     // Round c, Party 1 -----> Party 2
     trans1.append_message_example(msg1c);
-    let sig1c = kp1.sign(trans1.clone());
+    let sig1c = kp1.sign(&mut trans1);
     trans2.append_message_example(msg1c);
-    assert!(sig1c.verify(&pk1, trans2.clone()).is_ok());
+    assert!(sig1c.verify(&pk1, &mut trans2).is_ok());
     // Round c, Party 2 -----> Party 1
     trans2.append_message_example(msg2c);
-    let sig2c = kp2.sign(trans2.clone());
+    let sig2c = kp2.sign(&mut trans2);
     trans1.append_message_example(msg2c);
-    assert!(sig2c.verify(&pk2, trans1.clone()).is_ok());
+    assert!(sig2c.verify(&pk2, &mut trans1).is_ok());
 }
 
 #[test]
@@ -321,13 +321,13 @@ fn create_and_verify_vrf() {
     let (output1, proof1) = kp1.vrf(
         Transcript::new(domain_sep),
         &msg1[..],
-        Transcript::new(domain_sep),
+        &mut Transcript::new(domain_sep),
     );
 
     let (output2, proof2) = kp2.vrf(
         Transcript::new(domain_sep),
         &msg2[..],
-        Transcript::new(domain_sep),
+        &mut Transcript::new(domain_sep),
     );
 
     // Check that each VRF output was correctly produced
@@ -336,7 +336,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg1,
             &pk1,
-            Transcript::new(domain_sep),
+            &mut Transcript::new(domain_sep),
             &proof1,
         )
         .is_ok());
@@ -345,7 +345,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg2,
             &pk2,
-            Transcript::new(domain_sep),
+            &mut Transcript::new(domain_sep),
             &proof2,
         )
         .is_ok());
@@ -356,7 +356,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg1,
             &pk2, // swap pubkey
-            Transcript::new(domain_sep),
+            &mut Transcript::new(domain_sep),
             &proof1,
         )
         .is_err());
@@ -365,7 +365,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg2,
             &pk1, // swap pubkey
-            Transcript::new(domain_sep),
+            &mut Transcript::new(domain_sep),
             &proof2,
         )
         .is_err());
@@ -376,7 +376,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg1,
             &pk1,
-            Transcript::new(domain_sep),
+            &mut Transcript::new(domain_sep),
             &proof1,
         )
         .is_err());
@@ -385,7 +385,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg2,
             &pk2,
-            Transcript::new(domain_sep),
+            &mut Transcript::new(domain_sep),
             &proof2,
         )
         .is_err());
@@ -396,7 +396,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg1,
             &pk1,
-            Transcript::new(b"A different application"), // swap dom-sep
+            &mut Transcript::new(b"A different application"), // swap dom-sep
             &proof1,
         )
         .is_err());
@@ -405,7 +405,7 @@ fn create_and_verify_vrf() {
             Transcript::new(domain_sep),
             msg2,
             &pk2,
-            Transcript::new(b"A different application"), // swap dom-sep
+            &mut Transcript::new(b"A different application"), // swap dom-sep
             &proof2,
         )
         .is_err());

@@ -15,9 +15,9 @@ extern crate zkp;
 
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::UniformRand;
-use rand::thread_rng;
 use ark_xsk233::affine::Xsk233Affine as G1Affine;
 use ark_xsk233::xsk233::Fr;
+use rand::thread_rng;
 
 use zkp::{BatchableProof, CompactProof, Transcript};
 
@@ -35,9 +35,9 @@ fn create_and_verify_compact() {
         let A = (G * x + H * r1).into_affine();
         let B = (G * x + H * r2).into_affine();
 
-        let transcript = Transcript::new(b"DLEQTest");
+        let mut transcript = Transcript::new(b"DLEQTest");
         dleq::prove_compact(
-            transcript,
+            &mut transcript,
             dleq::ProveAssignments {
                 x: &x,
                 r1: &r1,
@@ -54,10 +54,10 @@ fn create_and_verify_compact() {
     let parsed_proof: CompactProof<_> = CompactProof::from_bytes(&proof_bytes).unwrap();
 
     // Verifier logic
-    let transcript = Transcript::new(b"DLEQTest");
+    let mut transcript = Transcript::new(b"DLEQTest");
     assert!(dleq::verify_compact(
         &parsed_proof,
-        transcript,
+        &mut transcript,
         dleq::VerifyAssignments {
             A: &points.A,
             B: &points.B,
@@ -82,9 +82,9 @@ fn create_and_verify_batchable() {
         let A = (G * x + H * r1).into_affine();
         let B = (G * x + H * r2).into_affine();
 
-        let transcript = Transcript::new(b"DLEQTest");
+        let mut transcript = Transcript::new(b"DLEQTest");
         dleq::prove_batchable(
-            transcript,
+            &mut transcript,
             dleq::ProveAssignments {
                 x: &x,
                 r1: &r1,
@@ -101,10 +101,10 @@ fn create_and_verify_batchable() {
     let parsed_proof: BatchableProof<_> = BatchableProof::from_bytes(&proof_bytes).unwrap();
 
     // Verifier logic
-    let transcript = Transcript::new(b"DLEQTest");
+    let mut transcript = Transcript::new(b"DLEQTest");
     assert!(dleq::verify_batchable(
         &parsed_proof,
-        transcript,
+        &mut transcript,
         dleq::VerifyAssignments {
             A: &points.A,
             B: &points.B,
@@ -140,9 +140,9 @@ fn create_batch_and_batch_verify() {
             let A = (G * x + H * r1).into_affine();
             let B = (G * x + H * r2).into_affine();
 
-            let transcript = Transcript::new(b"DLEQTest");
+            let mut transcript = Transcript::new(b"DLEQTest");
             let (proof, points) = dleq::prove_batchable(
-                transcript,
+                &mut transcript,
                 dleq::ProveAssignments {
                     x: &x,
                     r1: &r1,
@@ -163,16 +163,16 @@ fn create_batch_and_batch_verify() {
     };
 
     // Verifier logic
-    let transcripts = vec![Transcript::new(b"DLEQTest"); messages.len()];
+    let mut transcripts = vec![Transcript::new(b"DLEQTest"); messages.len()];
 
     assert!(dleq::batch_verify(
         &proofs,
-        transcripts,
+        transcripts.iter_mut().collect(),
         dleq::BatchVerifyAssignments {
             A: pubkeys,
             B: vrf_outputs,
             H: vec![H, H, H, H],
-            G,
+            G: G,
         },
     )
     .is_ok());

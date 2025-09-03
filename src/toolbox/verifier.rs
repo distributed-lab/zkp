@@ -7,6 +7,7 @@ use ark_ff::Zero;
 use rand::random;
 use std::borrow::BorrowMut;
 use std::iter;
+use std::marker::PhantomData;
 
 /// Used to produce verification results.
 ///
@@ -23,7 +24,8 @@ use std::iter;
 /// Finally, use [`Verifier::verify_compact`] or
 /// [`Verifier::verify_batchable`] to consume the verifier and produce
 /// a verification result.
-pub struct Verifier<G: AffineRepr, T: TranscriptProtocol<G>> {
+pub struct Verifier<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> {
+    phantom_u: PhantomData<U>,
     transcript: T,
     num_scalars: usize,
     points: Vec<G>,
@@ -41,22 +43,19 @@ pub struct ScalarVar(usize);
 #[derive(Copy, Clone)]
 pub struct PointVar(usize);
 
-impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
+impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T> {
     /// Construct a verifier for the proof statement with the given
     /// `proof_label`, operating on the given `transcript`.
     pub fn new(proof_label: &'static [u8], mut transcript: T) -> Self {
         transcript.borrow_mut().domain_sep(proof_label);
         Verifier {
+            phantom_u: PhantomData,
             transcript,
             num_scalars: 0,
             points: Vec::default(),
             point_labels: Vec::default(),
             constraints: Vec::default(),
         }
-    }
-
-    pub fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
-        self.transcript.get_challenge(label)
     }
 
     /// Allocate a placeholder scalar variable, without an assignment.
@@ -83,7 +82,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
 
     /// Consume the verifier to produce a verification of a [`CompactProof`].
     pub fn verify_compact(
-        &mut self,
+        mut self,
         proof: &CompactProof<G::ScalarField>,
     ) -> Result<(), ProofError> {
         // Check that there are as many responses as secret variables
@@ -127,7 +126,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
     }
 
     /// Consume the verifier to produce a verification of a [`BatchableProof`].
-    pub fn verify_batchable(&mut self, proof: &BatchableProof<G>) -> Result<(), ProofError> {
+    pub fn verify_batchable(mut self, proof: &BatchableProof<G>) -> Result<(), ProofError> {
         // Check that there are as many responses as secret variables
         if proof.responses.len() != self.num_scalars {
             return Err(ProofError::VerificationFailure);
@@ -184,7 +183,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Verifier<G, T> {
     }
 }
 
-impl<G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for Verifier<G, T> {
+impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> SchnorrCS for Verifier<G, U, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

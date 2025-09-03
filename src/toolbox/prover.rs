@@ -1,9 +1,9 @@
-use std::borrow::BorrowMut;
-
 use ark_ec::VariableBaseMSM;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::{BigInteger, PrimeField, UniformRand};
 use rand::thread_rng;
+use std::borrow::BorrowMut;
+use std::marker::PhantomData;
 
 use crate::toolbox::{SchnorrCS, TranscriptProtocol};
 use crate::{BatchableProof, CompactProof};
@@ -21,7 +21,9 @@ use crate::{BatchableProof, CompactProof};
 /// Finally, use [`Prover::prove_compact`] or
 /// [`Prover::prove_batchable`] to consume the prover and produce a
 /// proof.
-pub struct Prover<G: AffineRepr, T: TranscriptProtocol<G>> {
+pub struct Prover<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> {
+    phantom_u: PhantomData<U>,
+
     transcript: T,
     scalars: Vec<G::ScalarField>,
     points: Vec<G>,
@@ -36,12 +38,13 @@ pub struct ScalarVar(usize);
 #[derive(Copy, Clone)]
 pub struct PointVar(usize);
 
-impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
+impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
     /// Construct a new prover.  The `proof_label` disambiguates proof
     /// statements.
     pub fn new(proof_label: &'static [u8], mut transcript: T) -> Self {
         transcript.borrow_mut().domain_sep(proof_label);
         Prover {
+            phantom_u: PhantomData,
             transcript,
             scalars: Vec::default(),
             points: Vec::default(),
@@ -76,7 +79,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     }
 
     /// The compact and batchable proofs differ only by which data they store.
-    fn prove_impl(&mut self) -> (G::ScalarField, Vec<G::ScalarField>, Vec<G>) {
+    fn prove_impl(mut self) -> (G::ScalarField, Vec<G::ScalarField>, Vec<G>) {
         // Construct a TranscriptRng
         let mut rng_builder = self.transcript.borrow_mut().build_rng();
         for scalar in &self.scalars {
@@ -126,7 +129,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     }
 
     /// Consume this prover to produce a compact proof.
-    pub fn prove_compact(&mut self) -> CompactProof<G::ScalarField> {
+    pub fn prove_compact(mut self) -> CompactProof<G::ScalarField> {
         let (challenge, responses, _) = self.prove_impl();
 
         CompactProof {
@@ -135,12 +138,8 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
         }
     }
 
-    pub fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
-        self.transcript.get_challenge(label)
-    }
-
     /// Consume this prover to produce a batchable proof.
-    pub fn prove_batchable(&mut self) -> BatchableProof<G> {
+    pub fn prove_batchable(mut self) -> BatchableProof<G> {
         let (_, responses, commitments) = self.prove_impl();
 
         BatchableProof {
@@ -150,7 +149,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> Prover<G, T> {
     }
 }
 
-impl<G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for Prover<G, T> {
+impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> SchnorrCS for Prover<G, U, T> {
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 

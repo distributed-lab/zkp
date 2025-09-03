@@ -1,6 +1,6 @@
-use std::borrow::BorrowMut;
-
 use rand::{thread_rng, Rng};
+use std::borrow::BorrowMut;
+use std::marker::PhantomData;
 
 use ark_ec::AffineRepr;
 use ark_ec::VariableBaseMSM;
@@ -29,7 +29,8 @@ use crate::{BatchableProof, ProofError};
 ///
 /// Finally, use [`BatchVerifier::verify_batchable`] to consume the
 /// verifier and produce a batch verification result.
-pub struct BatchVerifier<G: AffineRepr, T: TranscriptProtocol<G>> {
+pub struct BatchVerifier<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> {
+    phantom_u: PhantomData<U>,
     batch_size: usize,
     transcripts: Vec<T>,
 
@@ -57,7 +58,7 @@ pub enum PointVar {
     Instance(usize),
 }
 
-impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
+impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> BatchVerifier<G, U, T> {
     /// Construct a new batch verifier for the statement with the
     /// given `proof_label`.
     ///
@@ -78,6 +79,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
             transcript.borrow_mut().domain_sep(proof_label);
         }
         Ok(BatchVerifier {
+            phantom_u: PhantomData,
             batch_size,
             transcripts,
             num_scalars: 0,
@@ -146,7 +148,7 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
     }
 
     /// Consume the verifier to produce a verification result.
-    pub fn verify_batchable(&mut self, proofs: &[BatchableProof<G>]) -> Result<(), ProofError> {
+    pub fn verify_batchable(mut self, proofs: &[BatchableProof<G>]) -> Result<(), ProofError> {
         if proofs.len() != self.batch_size {
             return Err(ProofError::BatchSizeMismatch);
         }
@@ -253,7 +255,9 @@ impl<G: AffineRepr, T: TranscriptProtocol<G>> BatchVerifier<G, T> {
     }
 }
 
-impl<G: AffineRepr, T: TranscriptProtocol<G>> SchnorrCS for BatchVerifier<G, T> {
+impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> SchnorrCS
+    for BatchVerifier<G, U, T>
+{
     type ScalarVar = ScalarVar;
     type PointVar = PointVar;
 
