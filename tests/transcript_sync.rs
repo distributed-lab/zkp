@@ -18,7 +18,6 @@ fn transcript_sync() {
     let G = G1Affine::generator();
     let H = G1Affine::rand(&mut thread_rng());
 
-    // Prover's scope
     let mut transcript1 = Transcript::new(b"DLEQTest");
 
     let x = Fr::from(rand::random::<u64>());
@@ -46,7 +45,6 @@ fn transcript_sync() {
     let proof_bytes = proof.to_bytes().unwrap();
     let parsed_proof: CompactProof<_> = CompactProof::from_bytes(&proof_bytes).unwrap();
 
-    // Verifier logic
     let mut transcript2 = Transcript::new(b"DLEQTest");
     assert!(dleq::verify_compact(
         &parsed_proof,
