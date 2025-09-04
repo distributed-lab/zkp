@@ -14,10 +14,9 @@
 
 extern crate bincode;
 extern crate serde;
-#[macro_use]
+
 extern crate serde_derive;
 extern crate sha2;
-#[macro_use]
 extern crate zkp;
 
 extern crate test;
@@ -55,7 +54,7 @@ fn create_compact_dleq(b: &mut Bencher) {
     let B = (H * x).into_affine();
 
     b.iter(|| {
-        let mut transcript = Transcript::new(b"DLEQTest");
+        let transcript = Transcript::new(b"DLEQTest");
         let mut prover = Prover::new(b"DLEQProof", transcript);
 
         let var_x = prover.allocate_scalar(b"x", x);
@@ -163,7 +162,7 @@ fn verify_batchable_dleq(b: &mut Bencher) {
     };
 
     b.iter(|| {
-        let mut transcript = Transcript::new(b"DLEQTest");
+        let transcript = Transcript::new(b"DLEQTest");
         let mut verifier = Verifier::new(b"DLEQProof", transcript);
 
         let var_x = verifier.allocate_scalar(b"x");
@@ -193,7 +192,7 @@ fn batch_verify_batchable_dleq_helper(batch_size: usize, b: &mut Bencher) {
             let A = (G * x).into_affine();
             let B = (H * x).into_affine();
 
-            let mut transcript = Transcript::new(b"DLEQBatchTest");
+            let transcript = Transcript::new(b"DLEQBatchTest");
             let mut prover = Prover::new(b"DLEQProof", transcript);
 
             // XXX committing var names to transcript forces ordering (?)

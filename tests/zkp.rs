@@ -133,7 +133,7 @@ fn create_batch_and_batch_verify() {
         let mut pubkeys = vec![];
         let mut vrf_outputs = vec![];
 
-        for (_i, _message) in messages.iter().enumerate() {
+        for _message in messages.iter() {
             let x = Fr::from(rand::random::<u64>());
             let r1 = Fr::from(rand::random::<u64>());
             let r2 = Fr::from(rand::random::<u64>());
@@ -172,7 +172,7 @@ fn create_batch_and_batch_verify() {
             A: pubkeys,
             B: vrf_outputs,
             H: vec![H, H, H, H],
-            G: G,
+            G,
         },
     )
     .is_ok());
