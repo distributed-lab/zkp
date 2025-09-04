@@ -129,7 +129,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
     }
 
     /// Consume this prover to produce a compact proof.
-    pub fn prove_compact(mut self) -> CompactProof<G::ScalarField> {
+    pub fn prove_compact(self) -> CompactProof<G::ScalarField> {
         let (challenge, responses, _) = self.prove_impl();
 
         CompactProof {
@@ -139,7 +139,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Prover<G, U, T> {
     }
 
     /// Consume this prover to produce a batchable proof.
-    pub fn prove_batchable(mut self) -> BatchableProof<G> {
+    pub fn prove_batchable(self) -> BatchableProof<G> {
         let (_, responses, commitments) = self.prove_impl();
 
         BatchableProof {
