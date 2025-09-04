@@ -13,9 +13,7 @@ documentation = "https://docs.rs/zkp"
 categories = ["cryptography"]
 keywords = ["cryptography", "xsk233", "zero-knowledge", "NIZK", "compiler"]
 description = "A toolkit for auto-generated implementations of Schnorr proofs"
-exclude = [
-    ".gitignore"
-]
+exclude = [".gitignore"]
 
 [package.metadata.docs.rs]
 features = ["nightly"]
@@ -35,13 +33,9 @@ ark-ff = "0.5.0"
 [dev-dependencies]
 bincode = "1"
 sha2 = "0.10.8"
-ark-xsk233 = { version="0.1.0", git = "https://github.com/distributed-lab/ark-xsk233.git", branch = "fix/for_zkp" }
+ark-xsk233 = { version = "0.1.0", git = "https://github.com/distributed-lab/ark-xsk233.git", branch = "fix/for_zkp" }
 
 [features]
 nightly = []
 debug-transcript = ["merlin/debug-transcript"]
 bench = []
-default = ["u64_backend"]
-u32_backend = []
-u64_backend = []
-simd_backend = []
