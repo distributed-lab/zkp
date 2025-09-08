@@ -16,18 +16,18 @@
 //! Roughly speaking, the tools fit together in the following way:
 //!
 //! * Statements are defined as generic functions which take a
-//! `SchnorrCS` implementation and some variables,
-//! and add the proof statements to the constraint system;
+//!   `SchnorrCS` implementation and some variables,
+//!   and add the proof statements to the constraint system;
 //!
 //! * To create a proof, construct a `Prover`,
-//! allocate and assign variables, pass the prover and the variables
-//! to the generic statement function, then consume the prover to
-//! obtain a proof.
+//!   allocate and assign variables, pass the prover and the variables
+//!   to the generic statement function, then consume the prover to
+//!   obtain a proof.
 //!
 //! * To verify a proof, construct a `Verifier`,
-//! allocate and assign variables, pass the verifier and the variables
-//! to the generic statement function, then consume the verifier to
-//! obtain a verification result.
+//!   allocate and assign variables, pass the verifier and the variables
+//!   to the generic statement function, then consume the verifier to
+//!   obtain a verification result.
 //!
 //! Note that the expansion of the [`define_proof`] macro contains a
 //! public `internal` module with the generated proof statement
@@ -40,12 +40,6 @@ pub mod batch_verifier;
 pub mod prover;
 /// Implements proof verification of compact and batchable proofs.
 pub mod verifier;
-
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::IsIdentity;
-
-use crate::{ProofError, Transcript};
 
 /// An interface for specifying proof statements, common between
 /// provers and verifiers.
@@ -97,9 +91,14 @@ pub trait SchnorrCS {
     );
 }
 
+use crate::{ProofError, Transcript};
+use ark_ec::AffineRepr;
+use ark_ff::PrimeField;
+use merlin::TranscriptRngBuilder;
+
 /// This trait defines the wire format for how the constraint system
 /// interacts with the proof transcript.
-pub trait TranscriptProtocol {
+pub trait TranscriptProtocol<G: AffineRepr> {
     /// Appends `label` to the transcript as a domain separator.
     fn domain_sep(&mut self, label: &'static [u8]);
 
@@ -114,23 +113,20 @@ pub trait TranscriptProtocol {
     /// Returns the compressed point encoding to allow reusing the
     /// result of the encoding computation; the return value can be
     /// discarded if it's unused.
-    fn append_point_var(
-        &mut self,
-        label: &'static [u8],
-        point: &RistrettoPoint,
-    ) -> CompressedRistretto;
+    fn append_point_var(&mut self, label: &'static [u8], point: &G);
 
     /// Check that point variable is not the identity and
     /// append it to the transcript, for use by a verifier.
     ///
     /// Returns `Ok(())` if the point is not the identity point (and
-    /// therefore generates the full ristretto255 group).
+    /// therefore generates an element that implements ['AffineRepr']
+    /// trait).
     ///
     /// Using this function prevents small-subgroup attacks.
     fn validate_and_append_point_var(
         &mut self,
         label: &'static [u8],
-        point: &CompressedRistretto,
+        point: &G,
     ) -> Result<(), ProofError>;
 
     /// Append a blinding factor commitment to the transcript, for use by
@@ -139,32 +135,31 @@ pub trait TranscriptProtocol {
     /// Returns the compressed point encoding to allow reusing the
     /// result of the encoding computation; the return value can be
     /// discarded if it's unused.
-    fn append_blinding_commitment(
-        &mut self,
-        label: &'static [u8],
-        point: &RistrettoPoint,
-    ) -> CompressedRistretto;
+    fn append_blinding_commitment(&mut self, label: &'static [u8], point: &G);
 
     /// Check that a blinding factor commitment is not the identity and
     /// commit it to the transcript, for use by a verifier.
     ///
     /// Returns `Ok(())` if the point is not the identity point (and
-    /// therefore generates the full ristretto255 group).
+    /// therefore generates an element that implements ['AffineRepr']
+    /// trait).
     ///
     /// Using this function prevents small-subgroup attacks.
     fn validate_and_append_blinding_commitment(
         &mut self,
         label: &'static [u8],
-        point: &CompressedRistretto,
+        point: &G,
     ) -> Result<(), ProofError>;
 
+    fn build_rng(&self) -> TranscriptRngBuilder;
+
     /// Get a scalar challenge from the transcript.
-    fn get_challenge(&mut self, label: &'static [u8]) -> Scalar;
+    fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField;
 }
 
-impl TranscriptProtocol for Transcript {
+impl<G: AffineRepr> TranscriptProtocol<G> for Transcript {
     fn domain_sep(&mut self, label: &'static [u8]) {
-        self.append_message(b"dom-sep", b"schnorrzkp/1.0/ristretto255");
+        self.append_message(b"dom-sep", b"schnorrzkp/1.0/affine-repr");
         self.append_message(b"dom-sep", label);
     }
 
@@ -172,57 +167,57 @@ impl TranscriptProtocol for Transcript {
         self.append_message(b"scvar", label);
     }
 
-    fn append_point_var(
-        &mut self,
-        label: &'static [u8],
-        point: &RistrettoPoint,
-    ) -> CompressedRistretto {
-        let encoding = point.compress();
+    fn append_point_var(&mut self, label: &'static [u8], point: &G) {
+        let mut bytes = Vec::new();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"ptvar", label);
-        self.append_message(b"val", encoding.as_bytes());
-        encoding
+        self.append_message(b"val", &bytes);
     }
 
     fn validate_and_append_point_var(
         &mut self,
         label: &'static [u8],
-        point: &CompressedRistretto,
+        point: &G,
     ) -> Result<(), ProofError> {
-        if point.is_identity() {
+        if point.is_zero() {
             return Err(ProofError::VerificationFailure);
         }
+        let mut bytes = Vec::new();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"ptvar", label);
-        self.append_message(b"val", point.as_bytes());
+        self.append_message(b"val", &bytes);
         Ok(())
     }
 
-    fn append_blinding_commitment(
-        &mut self,
-        label: &'static [u8],
-        point: &RistrettoPoint,
-    ) -> CompressedRistretto {
-        let encoding = point.compress();
+    fn append_blinding_commitment(&mut self, label: &'static [u8], point: &G) {
+        let mut bytes = Vec::new();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"blindcom", label);
-        self.append_message(b"val", encoding.as_bytes());
-        encoding
+        self.append_message(b"val", &bytes);
     }
 
     fn validate_and_append_blinding_commitment(
         &mut self,
         label: &'static [u8],
-        point: &CompressedRistretto,
+        point: &G,
     ) -> Result<(), ProofError> {
-        if point.is_identity() {
+        if point.is_zero() {
             return Err(ProofError::VerificationFailure);
         }
+        let mut bytes = Vec::new();
+        point.serialize_compressed(&mut bytes).unwrap();
         self.append_message(b"blindcom", label);
-        self.append_message(b"val", point.as_bytes());
+        self.append_message(b"val", &bytes);
         Ok(())
     }
 
-    fn get_challenge(&mut self, label: &'static [u8]) -> Scalar {
+    fn build_rng(&self) -> TranscriptRngBuilder {
+        self.build_rng()
+    }
+
+    fn get_challenge(&mut self, label: &'static [u8]) -> G::ScalarField {
         let mut bytes = [0; 64];
         self.challenge_bytes(label, &mut bytes);
-        Scalar::from_bytes_mod_order_wide(&bytes)
+        G::ScalarField::from_le_bytes_mod_order(&bytes)
     }
 }

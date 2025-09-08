@@ -4,15 +4,14 @@ name = "zkp"
 # - update CHANGELOG
 # - update html_root_url
 # - update README if required by semver
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Henry de Valence <hdevalence@hdevalence.ca>"]
 edition = "2018"
 license = "CC0-1.0"
 readme = "README.md"
-repository = "https://github.com/zkcrypto/zkp"
 documentation = "https://docs.rs/zkp"
 categories = ["cryptography"]
-keywords = ["cryptography", "ristretto", "zero-knowledge", "NIZK", "compiler"]
+keywords = ["cryptography", "xsk233", "zero-knowledge", "NIZK", "compiler"]
 description = "A toolkit for auto-generated implementations of Schnorr proofs"
 exclude = [
     ".gitignore"
@@ -22,23 +21,23 @@ exclude = [
 features = ["nightly"]
 
 [dependencies]
-merlin = "2"
-rand = "0.7"
-serde = "1"
+merlin = "3.0.0"
+rand = "0.8.5"
+serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1"
-thiserror = "1"
+thiserror = "2.0.12"
 # Disable default features to deselect a backend, then select one below
-curve25519-dalek = { package = "curve25519-dalek-ng", version = "3", default-features = false, features = ["serde", "std"] }
+ark-ec = "0.5.0"
+ark-serialize = "0.5.0"
+ark-std = "0.5.0"
+ark-ff = "0.5.0"
 
 [dev-dependencies]
 bincode = "1"
-sha2 = "0.9"
+sha2 = "0.10.8"
+ark-xsk233 = { version="0.1.0", git = "https://github.com/distributed-lab/ark-xsk233.git", branch = "fix/for_zkp" }
 
 [features]
-nightly = ["curve25519-dalek/nightly"]
+nightly = []
 debug-transcript = ["merlin/debug-transcript"]
 bench = []
-default = ["u64_backend"]
-u32_backend = ["curve25519-dalek/u32_backend"]
-u64_backend = ["curve25519-dalek/u64_backend"]
-simd_backend = ["curve25519-dalek/simd_backend"]

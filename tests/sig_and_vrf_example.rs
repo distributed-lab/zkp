@@ -10,12 +10,13 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
 extern crate rand;
+
+use ark_ec::{AffineRepr, CurveGroup};
+use ark_std::UniformRand;
 use rand::{thread_rng, CryptoRng, RngCore};
 
-extern crate curve25519_dalek;
-use curve25519_dalek::constants as dalek_constants;
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
+use ark_xsk233::affine::{Xsk233Affine as G1Affine, Xsk233Affine};
+use ark_xsk233::xsk233::Fr;
 
 #[macro_use]
 extern crate zkp;
@@ -27,36 +28,39 @@ define_proof! {vrf_proof, "VRF", (x), (A, G, H), (B) : A = (x * B), G = (x * H) 
 /// Defines how the construction interacts with the transcript.
 trait TranscriptProtocol {
     fn append_message_example(&mut self, message: &[u8]);
-    fn hash_to_group(self) -> RistrettoPoint;
+    fn hash_to_group(self) -> G1Affine;
 }
 
 impl TranscriptProtocol for Transcript {
     fn append_message_example(&mut self, message: &[u8]) {
         self.append_message(b"msg", message);
     }
-    fn hash_to_group(mut self) -> RistrettoPoint {
-        let mut bytes = [0u8; 64];
+    fn hash_to_group(mut self) -> G1Affine {
+        let mut bytes = [0u8; 8];
         self.challenge_bytes(b"output", &mut bytes);
-        RistrettoPoint::from_uniform_bytes(&bytes)
+
+        let field_value = Fr::from(i64::from_le_bytes(bytes));
+
+        (G1Affine::generator() * field_value).into_affine()
     }
 }
 
 #[derive(Clone)]
-pub struct SecretKey(Scalar);
+pub struct SecretKey(Fr);
 
 impl SecretKey {
     fn new<R: RngCore + CryptoRng>(rng: &mut R) -> SecretKey {
-        SecretKey(Scalar::random(rng))
+        SecretKey(Fr::rand(rng))
     }
 }
 
 #[derive(Copy, Clone)]
-pub struct PublicKey(RistrettoPoint, CompressedRistretto);
+pub struct PublicKey(G1Affine);
 
 impl<'a> From<&'a SecretKey> for PublicKey {
     fn from(sk: &'a SecretKey) -> PublicKey {
-        let pk = &sk.0 * &dalek_constants::RISTRETTO_BASEPOINT_TABLE;
-        PublicKey(pk, pk.compress())
+        let pk = Xsk233Affine::generator() * sk.0;
+        PublicKey(pk.into_affine())
     }
 }
 
@@ -72,25 +76,24 @@ impl From<SecretKey> for KeyPair {
     }
 }
 
-pub struct Signature(sig_proof::BatchableProof);
+pub struct Signature(sig_proof::BatchableProof<G1Affine>);
 
-pub struct VrfOutput(CompressedRistretto);
+pub struct VrfOutput(G1Affine);
 
-pub struct VrfProof(vrf_proof::CompactProof);
+pub struct VrfProof(vrf_proof::CompactProof<Fr>);
 
 impl KeyPair {
     fn public_key(&self) -> PublicKey {
         self.pk
     }
 
-    fn sign(&self, message: &[u8], sig_transcript: &mut Transcript) -> Signature {
-        sig_transcript.append_message_example(message);
+    fn sign(&self, sig_transcript: &mut Transcript) -> Signature {
         let (proof, _points) = sig_proof::prove_batchable(
             sig_transcript,
             sig_proof::ProveAssignments {
                 x: &self.sk.0,
                 A: &self.pk.0,
-                B: &dalek_constants::RISTRETTO_BASEPOINT_POINT,
+                B: &G1Affine::generator(),
             },
         );
 
@@ -109,13 +112,13 @@ impl KeyPair {
         let H = function_transcript.hash_to_group();
 
         // Compute the VRF output G and form a proof
-        let G = &H * &self.sk.0;
+        let G = (H * self.sk.0).into_affine();
         let (proof, points) = vrf_proof::prove_compact(
             proof_transcript,
             vrf_proof::ProveAssignments {
                 x: &self.sk.0,
                 A: &self.pk.0,
-                B: &dalek_constants::RISTRETTO_BASEPOINT_POINT,
+                B: &G1Affine::generator(),
                 G: &G,
                 H: &H,
             },
@@ -126,19 +129,23 @@ impl KeyPair {
 }
 
 impl Signature {
-    fn verify(
+    fn verify_with_message(
         &self,
         message: &[u8],
         pubkey: &PublicKey,
         sig_transcript: &mut Transcript,
     ) -> Result<(), ()> {
         sig_transcript.append_message_example(message);
+        self.verify(pubkey, sig_transcript)
+    }
+
+    fn verify(&self, pubkey: &PublicKey, sig_transcript: &mut Transcript) -> Result<(), ()> {
         sig_proof::verify_batchable(
             &self.0,
             sig_transcript,
             sig_proof::VerifyAssignments {
-                A: &pubkey.1,
-                B: &dalek_constants::RISTRETTO_BASEPOINT_COMPRESSED,
+                A: &pubkey.0,
+                B: &G1Affine::generator(),
             },
         )
         .map_err(|_discard_error_info_in_test_code| ())
@@ -157,14 +164,14 @@ impl VrfOutput {
     ) -> Result<(), ()> {
         // Use function_transcript to hash the message to a point H
         function_transcript.append_message_example(message);
-        let H = function_transcript.hash_to_group().compress();
+        let H = function_transcript.hash_to_group();
 
         vrf_proof::verify_compact(
             &proof.0,
             proof_transcript,
             vrf_proof::VerifyAssignments {
-                A: &pubkey.1,
-                B: &dalek_constants::RISTRETTO_BASEPOINT_COMPRESSED,
+                A: &pubkey.0,
+                B: &G1Affine::generator(),
                 G: &self.0,
                 H: &H,
             },
@@ -184,40 +191,45 @@ fn create_and_verify_sig() {
     let kp2 = KeyPair::from(SecretKey::new(&mut thread_rng()));
     let pk2 = kp2.public_key();
 
-    let sig1 = kp1.sign(&msg1[..], &mut Transcript::new(domain_sep));
+    let mut t1 = Transcript::new(domain_sep);
+    t1.append_message_example(msg1);
 
-    let sig2 = kp2.sign(&msg2[..], &mut Transcript::new(domain_sep));
+    let mut t2 = Transcript::new(domain_sep);
+    t2.append_message_example(msg2);
+
+    let sig1 = kp1.sign(&mut t1);
+    let sig2 = kp2.sign(&mut t2);
 
     // Check that each signature verifies
     assert!(sig1
-        .verify(msg1, &pk1, &mut Transcript::new(domain_sep),)
+        .verify_with_message(msg1, &pk1, &mut Transcript::new(domain_sep))
         .is_ok());
     assert!(sig2
-        .verify(msg2, &pk2, &mut Transcript::new(domain_sep),)
+        .verify_with_message(msg2, &pk2, &mut Transcript::new(domain_sep))
         .is_ok());
 
     // Check that verification with the wrong pubkey fails
     assert!(sig1
-        .verify(msg1, &pk2, &mut Transcript::new(domain_sep),)
+        .verify_with_message(msg1, &pk2, &mut Transcript::new(domain_sep))
         .is_err());
     assert!(sig2
-        .verify(msg2, &pk1, &mut Transcript::new(domain_sep),)
+        .verify_with_message(msg2, &pk1, &mut Transcript::new(domain_sep))
         .is_err());
 
     // Check that verification with the wrong message fails
     assert!(sig1
-        .verify(msg2, &pk1, &mut Transcript::new(domain_sep),)
+        .verify_with_message(msg2, &pk1, &mut Transcript::new(domain_sep))
         .is_err());
     assert!(sig2
-        .verify(msg1, &pk2, &mut Transcript::new(domain_sep),)
+        .verify_with_message(msg1, &pk2, &mut Transcript::new(domain_sep))
         .is_err());
 
     // Check that verification with the wrong domain separator fails
     assert!(sig1
-        .verify(msg1, &pk1, &mut Transcript::new(b"Wrong"),)
+        .verify_with_message(msg1, &pk1, &mut Transcript::new(b"Wrong"))
         .is_err());
     assert!(sig2
-        .verify(msg2, &pk2, &mut Transcript::new(b"Wrong"),)
+        .verify_with_message(msg2, &pk2, &mut Transcript::new(b"Wrong"))
         .is_err());
 }
 
@@ -226,16 +238,19 @@ fn create_and_verify_sig() {
 fn create_and_verify_bigsig() {
     let domain_sep = b"My Sig Application";
     let mut large_msg = Vec::new();
-    large_msg.resize((u32::max_value() as usize) + 250, 1u8);
+    large_msg.resize(4294967, 1u8);
 
     let kp = KeyPair::from(SecretKey::new(&mut thread_rng()));
     let pk = kp.public_key();
 
-    let sig = kp.sign(&large_msg[..], &mut Transcript::new(domain_sep));
+    let mut t = Transcript::new(domain_sep);
+    t.append_message_example(large_msg.as_slice());
+
+    let sig = kp.sign(&mut t);
 
     // Check that the signature verifies (& doesn't panic inside Merlin)
     assert!(sig
-        .verify(&large_msg[..], &pk, &mut Transcript::new(domain_sep),)
+        .verify_with_message(&large_msg[..], &pk, &mut Transcript::new(domain_sep))
         .is_ok());
 }
 
@@ -259,25 +274,37 @@ fn counterparty_signature_chain() {
     let mut trans2 = Transcript::new(domain_sep);
 
     // Round a, Party 1 -----> Party 2
-    let sig1a = kp1.sign(&msg1a[..], &mut trans1);
-    assert!(sig1a.verify(msg1a, &pk1, &mut trans2).is_ok());
+    trans1.append_message_example(msg1a);
+    let sig1a = kp1.sign(&mut trans1);
+    trans2.append_message_example(msg1a);
+    assert!(sig1a.verify(&pk1, &mut trans2).is_ok());
     // Round a, Party 2 -----> Party 1
-    let sig2a = kp2.sign(&msg2a[..], &mut trans2);
-    assert!(sig2a.verify(msg2a, &pk2, &mut trans1).is_ok());
+    trans2.append_message_example(msg2a);
+    let sig2a = kp2.sign(&mut trans2);
+    trans1.append_message_example(msg2a);
+    assert!(sig2a.verify(&pk2, &mut trans1).is_ok());
 
     // Round b, Party 1 -----> Party 2
-    let sig1b = kp1.sign(&msg1b[..], &mut trans1);
-    assert!(sig1b.verify(msg1b, &pk1, &mut trans2).is_ok());
-    // Round b, Party 2 -----> Party 1
-    let sig2b = kp2.sign(&msg2b[..], &mut trans2);
-    assert!(sig2b.verify(msg2b, &pk2, &mut trans1).is_ok());
+    trans1.append_message_example(msg1b);
+    let sig1b = kp1.sign(&mut trans1);
+    trans2.append_message_example(msg1b);
+    assert!(sig1b.verify(&pk1, &mut trans2).is_ok());
+    // // Round b, Party 2 -----> Party 1
+    trans2.append_message_example(msg2b);
+    let sig2b = kp2.sign(&mut trans2);
+    trans1.append_message_example(msg2b);
+    assert!(sig2b.verify(&pk2, &mut trans1).is_ok());
 
     // Round c, Party 1 -----> Party 2
-    let sig1c = kp1.sign(&msg1c[..], &mut trans1);
-    assert!(sig1c.verify(msg1c, &pk1, &mut trans2).is_ok());
+    trans1.append_message_example(msg1c);
+    let sig1c = kp1.sign(&mut trans1);
+    trans2.append_message_example(msg1c);
+    assert!(sig1c.verify(&pk1, &mut trans2).is_ok());
     // Round c, Party 2 -----> Party 1
-    let sig2c = kp2.sign(&msg2c[..], &mut trans2);
-    assert!(sig2c.verify(msg2c, &pk2, &mut trans1).is_ok());
+    trans2.append_message_example(msg2c);
+    let sig2c = kp2.sign(&mut trans2);
+    trans1.append_message_example(msg2c);
+    assert!(sig2c.verify(&pk2, &mut trans1).is_ok());
 }
 
 #[test]

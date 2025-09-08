@@ -13,22 +13,19 @@
 #![allow(non_snake_case)]
 
 extern crate bincode;
-extern crate curve25519_dalek;
 extern crate serde;
-#[macro_use]
 extern crate serde_derive;
 extern crate sha2;
-#[macro_use]
 extern crate zkp;
 
 extern crate test;
+use ark_ec::{AffineRepr, CurveGroup};
+use ark_std::UniformRand;
+use rand::thread_rng;
 use test::Bencher;
 
-use self::sha2::Sha512;
-
-use curve25519_dalek::constants as dalek_constants;
-use curve25519_dalek::ristretto::RistrettoPoint;
-use curve25519_dalek::scalar::Scalar;
+use ark_xsk233::affine::{Xsk233Affine as G1Affine, Xsk233Affine};
+use ark_xsk233::xsk233::Fr;
 
 use zkp::toolbox::{batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS};
 use zkp::Transcript;
@@ -48,16 +45,17 @@ fn dleq_statement<CS: SchnorrCS>(
 
 #[bench]
 fn create_compact_dleq(b: &mut Bencher) {
-    let G = dalek_constants::RISTRETTO_BASEPOINT_POINT;
-    let H = RistrettoPoint::hash_from_bytes::<Sha512>(G.compress().as_bytes());
+    let G = G1Affine::generator();
+    let H = G1Affine::rand(&mut thread_rng());
 
-    let x = Scalar::from(89327492234u64);
-    let A = G * x;
-    let B = H * x;
+    let x = Fr::from(89327492234u64);
+    let A = (G * x).into_affine();
+    let B = (H * x).into_affine();
 
     b.iter(|| {
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover = Prover::new(b"DLEQProof", &mut transcript);
+        let mut prover: Prover<Xsk233Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         let var_x = prover.allocate_scalar(b"x", x);
         let (var_G, _) = prover.allocate_point(b"G", G);
@@ -73,17 +71,18 @@ fn create_compact_dleq(b: &mut Bencher) {
 
 #[bench]
 fn verify_compact_dleq(b: &mut Bencher) {
-    let G = dalek_constants::RISTRETTO_BASEPOINT_POINT;
-    let H = RistrettoPoint::hash_from_bytes::<Sha512>(G.compress().as_bytes());
+    let G = G1Affine::generator();
+    let H = G1Affine::rand(&mut thread_rng());
 
     let (proof, cmpr_A, cmpr_B) = {
-        let x = Scalar::from(89327492234u64);
+        let x = Fr::from(89327492234u64);
 
-        let A = G * x;
-        let B = H * x;
+        let A = (G * x).into_affine();
+        let B = (H * x).into_affine();
 
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover = Prover::new(b"DLEQProof", &mut transcript);
+        let mut prover: Prover<Xsk233Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         // XXX committing var names to transcript forces ordering (?)
         let var_x = prover.allocate_scalar(b"x", x);
@@ -97,16 +96,14 @@ fn verify_compact_dleq(b: &mut Bencher) {
         (prover.prove_compact(), cmpr_A, cmpr_B)
     };
 
-    let cmpr_G = G.compress();
-    let cmpr_H = H.compress();
-
     b.iter(|| {
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut verifier = Verifier::new(b"DLEQProof", &mut transcript);
+        let mut verifier: Verifier<Xsk233Affine, Transcript, _> =
+            Verifier::new(b"DLEQProof", &mut transcript);
 
         let var_x = verifier.allocate_scalar(b"x");
-        let var_G = verifier.allocate_point(b"G", cmpr_G).unwrap();
-        let var_H = verifier.allocate_point(b"H", cmpr_H).unwrap();
+        let var_G = verifier.allocate_point(b"G", G).unwrap();
+        let var_H = verifier.allocate_point(b"H", H).unwrap();
         let var_A = verifier.allocate_point(b"A", cmpr_A).unwrap();
         let var_B = verifier.allocate_point(b"B", cmpr_B).unwrap();
 
@@ -118,16 +115,17 @@ fn verify_compact_dleq(b: &mut Bencher) {
 
 #[bench]
 fn create_batchable_dleq(b: &mut Bencher) {
-    let G = dalek_constants::RISTRETTO_BASEPOINT_POINT;
-    let H = RistrettoPoint::hash_from_bytes::<Sha512>(G.compress().as_bytes());
+    let G = G1Affine::generator();
+    let H = G1Affine::rand(&mut thread_rng());
 
-    let x = Scalar::from(89327492234u64);
-    let A = G * x;
-    let B = H * x;
+    let x = Fr::from(89327492234u64);
+    let A = (G * x).into_affine();
+    let B = (H * x).into_affine();
 
     b.iter(|| {
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover = Prover::new(b"DLEQProof", &mut transcript);
+        let mut prover: Prover<Xsk233Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         let var_x = prover.allocate_scalar(b"x", x);
         let (var_G, _) = prover.allocate_point(b"G", G);
@@ -143,17 +141,18 @@ fn create_batchable_dleq(b: &mut Bencher) {
 
 #[bench]
 fn verify_batchable_dleq(b: &mut Bencher) {
-    let G = dalek_constants::RISTRETTO_BASEPOINT_POINT;
-    let H = RistrettoPoint::hash_from_bytes::<Sha512>(G.compress().as_bytes());
+    let G = G1Affine::generator();
+    let H = G1Affine::rand(&mut thread_rng());
 
     let (proof, cmpr_A, cmpr_B) = {
-        let x = Scalar::from(89327492234u64);
+        let x = Fr::from(89327492234u64);
 
-        let A = G * x;
-        let B = H * x;
+        let A = (G * x).into_affine();
+        let B = (H * x).into_affine();
 
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut prover = Prover::new(b"DLEQProof", &mut transcript);
+        let mut prover: Prover<Xsk233Affine, Transcript, _> =
+            Prover::new(b"DLEQProof", &mut transcript);
 
         let var_x = prover.allocate_scalar(b"x", x);
         let (var_G, _) = prover.allocate_point(b"G", G);
@@ -166,16 +165,14 @@ fn verify_batchable_dleq(b: &mut Bencher) {
         (prover.prove_batchable(), cmpr_A, cmpr_B)
     };
 
-    let cmpr_G = G.compress();
-    let cmpr_H = H.compress();
-
     b.iter(|| {
         let mut transcript = Transcript::new(b"DLEQTest");
-        let mut verifier = Verifier::new(b"DLEQProof", &mut transcript);
+        let mut verifier: Verifier<Xsk233Affine, Transcript, _> =
+            Verifier::new(b"DLEQProof", &mut transcript);
 
         let var_x = verifier.allocate_scalar(b"x");
-        let var_G = verifier.allocate_point(b"G", cmpr_G).unwrap();
-        let var_H = verifier.allocate_point(b"H", cmpr_H).unwrap();
+        let var_G = verifier.allocate_point(b"G", G).unwrap();
+        let var_H = verifier.allocate_point(b"H", H).unwrap();
         let var_A = verifier.allocate_point(b"A", cmpr_A).unwrap();
         let var_B = verifier.allocate_point(b"B", cmpr_B).unwrap();
 
@@ -186,8 +183,8 @@ fn verify_batchable_dleq(b: &mut Bencher) {
 }
 
 fn batch_verify_batchable_dleq_helper(batch_size: usize, b: &mut Bencher) {
-    let G = dalek_constants::RISTRETTO_BASEPOINT_POINT;
-    let H = RistrettoPoint::hash_from_bytes::<Sha512>(G.compress().as_bytes());
+    let G = G1Affine::generator();
+    let H = G1Affine::rand(&mut thread_rng());
 
     let mut proofs = Vec::new();
     let mut cmpr_As = Vec::new();
@@ -195,13 +192,14 @@ fn batch_verify_batchable_dleq_helper(batch_size: usize, b: &mut Bencher) {
 
     for j in 0..batch_size {
         let (proof, cmpr_A, cmpr_B) = {
-            let x = Scalar::from((j as u64) + 89327492234u64);
+            let x = Fr::from((j as u64) + 89327492234u64);
 
-            let A = G * x;
-            let B = H * x;
+            let A = (G * x).into_affine();
+            let B = (H * x).into_affine();
 
             let mut transcript = Transcript::new(b"DLEQBatchTest");
-            let mut prover = Prover::new(b"DLEQProof", &mut transcript);
+            let mut prover: Prover<Xsk233Affine, Transcript, _> =
+                Prover::new(b"DLEQProof", &mut transcript);
 
             // XXX committing var names to transcript forces ordering (?)
             let var_x = prover.allocate_scalar(b"x", x);
@@ -222,11 +220,12 @@ fn batch_verify_batchable_dleq_helper(batch_size: usize, b: &mut Bencher) {
     b.iter(|| {
         let mut transcripts = vec![Transcript::new(b"DLEQBatchTest"); batch_size];
         let transcript_refs = transcripts.iter_mut().collect();
-        let mut verifier = BatchVerifier::new(b"DLEQProof", batch_size, transcript_refs).unwrap();
+        let mut verifier: BatchVerifier<Xsk233Affine, Transcript, _> =
+            BatchVerifier::new(b"DLEQProof", batch_size, transcript_refs).unwrap();
 
         let var_x = verifier.allocate_scalar(b"x");
-        let var_G = verifier.allocate_static_point(b"G", G.compress()).unwrap();
-        let var_H = verifier.allocate_static_point(b"H", H.compress()).unwrap();
+        let var_G = verifier.allocate_static_point(b"G", G).unwrap();
+        let var_H = verifier.allocate_static_point(b"H", H).unwrap();
         let var_A = verifier
             .allocate_instance_point(b"A", cmpr_As.clone())
             .unwrap();

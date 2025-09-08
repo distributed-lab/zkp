@@ -12,9 +12,7 @@
 #![feature(test)]
 
 extern crate bincode;
-extern crate curve25519_dalek;
 extern crate serde;
-#[macro_use]
 extern crate serde_derive;
 extern crate sha2;
 #[macro_use]
