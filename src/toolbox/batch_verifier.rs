@@ -147,7 +147,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> BatchVerifier<G, 
         Ok(PointVar::Instance(self.instance_points.len() - 1))
     }
 
-    /// Consume the verifier to produce a verification result.
+    /// Produces a verification of a [`BatchableProof`].
     pub fn verify_batchable(mut self, proofs: &[BatchableProof<G>]) -> Result<(), ProofError> {
         if proofs.len() != self.batch_size {
             return Err(ProofError::BatchSizeMismatch);

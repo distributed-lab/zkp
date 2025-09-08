@@ -41,7 +41,3 @@ ark-xsk233 = { version="0.1.0", git = "https://github.com/distributed-lab/ark-xs
 nightly = []
 debug-transcript = ["merlin/debug-transcript"]
 bench = []
-default = ["u64_backend"]
-u32_backend = []
-u64_backend = []
-simd_backend = []

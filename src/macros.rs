@@ -40,8 +40,8 @@ macro_rules! __compute_formula_constraint {
 ///
 /// This creates a module `dleq` with code for proving knowledge of a
 /// secret `x: Scalar` such that `A = x * G`, `B = x * H` for
-/// per-proof public parameters `A, B, H: Xsk233Affine` and common
-/// parameters `G: Xsk233Affine`; the UTF-8 string `"DLEQ Proof"` is
+/// per-proof public parameters `A, B, H: AffineRepr` and common
+/// parameters `G: AffineRepr`; the UTF-8 string `"DLEQ Proof"` is
 /// added to the transcript as a domain separator.
 ///
 /// In general the syntax is

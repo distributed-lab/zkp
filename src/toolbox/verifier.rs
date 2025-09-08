@@ -80,7 +80,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T>
         Ok(PointVar(self.points.len() - 1))
     }
 
-    /// Consume the verifier to produce a verification of a [`CompactProof`].
+    /// Produces a verification of a [`CompactProof`].
     pub fn verify_compact(
         mut self,
         proof: &CompactProof<G::ScalarField>,
@@ -125,7 +125,7 @@ impl<G: AffineRepr, U: TranscriptProtocol<G>, T: BorrowMut<U>> Verifier<G, U, T>
         }
     }
 
-    /// Consume the verifier to produce a verification of a [`BatchableProof`].
+    /// Produces a verification of a [`BatchableProof`].
     pub fn verify_batchable(mut self, proof: &BatchableProof<G>) -> Result<(), ProofError> {
         // Check that there are as many responses as secret variables
         if proof.responses.len() != self.num_scalars {

@@ -14,10 +14,8 @@
 
 extern crate bincode;
 extern crate serde;
-#[macro_use]
 extern crate serde_derive;
 extern crate sha2;
-#[macro_use]
 extern crate zkp;
 
 extern crate test;
@@ -29,10 +27,7 @@ use test::Bencher;
 use ark_xsk233::affine::{Xsk233Affine as G1Affine, Xsk233Affine};
 use ark_xsk233::xsk233::Fr;
 
-use zkp::toolbox::{
-    batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS,
-    TranscriptProtocol,
-};
+use zkp::toolbox::{batch_verifier::BatchVerifier, prover::Prover, verifier::Verifier, SchnorrCS};
 use zkp::Transcript;
 
 #[allow(non_snake_case)]
